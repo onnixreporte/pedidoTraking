@@ -1,0 +1,11 @@
+node_modules
+.next
+.env
+.env.local
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+
+# Documentación interna y configuración de agentes
+.agents
+docs

@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  ENVIADO_AL_NEGOCIO
+  ACEPTADO
+  REPARTIDOR_EN_CAMINO
+  ENTREGADO
+}
+
+model Order {
+  id               String      @id @default(cuid())
+  publicId         String      @unique
+  adminToken       String      @unique
+
+  cliente          String
+  detalle          String
+  direccion        String
+  total            Int
+  idChat           String
+
+  status           OrderStatus @default(ENVIADO_AL_NEGOCIO)
+  estimatedMinutes Int?
+
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([idChat, total, createdAt])
+}
