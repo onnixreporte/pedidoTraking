@@ -26,6 +26,10 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const parsed = PedidoSchema.safeParse(body);
   if (!parsed.success) {
+    console.error('[POST /api/pedidos] validation failed', {
+      received: body,
+      issues: parsed.error.issues,
+    });
     return NextResponse.json(
       { error: 'validation_error', details: parsed.error.issues },
       { status: 400 },
