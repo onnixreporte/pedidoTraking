@@ -42,7 +42,7 @@ export function OrderDisplay({
         </div>
         {order.estimatedMinutes != null && (
           <div>
-            <span className="text-gray-500">Tiempo estimado de entrega: </span>
+            <span className="text-gray-500">Tiempo estimado de Entrega: </span>
             <span className="font-medium">{order.estimatedMinutes} min</span>
           </div>
         )}
