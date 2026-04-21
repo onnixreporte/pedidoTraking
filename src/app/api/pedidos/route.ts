@@ -17,7 +17,7 @@ const PedidoSchema = z.object({
   direccion: z.string().trim().min(1),
   total: numericish,
   cliente: z.string().trim().min(1),
-  id_chat: z.string().trim().min(1),
+  id_chat: z.string().trim().min(1).optional(),
 });
 
 const IDEMPOTENCY_WINDOW_MS = 5 * 60 * 1000;
@@ -38,11 +38,13 @@ export async function POST(req: NextRequest) {
 
   const { detalle, direccion, total, cliente, id_chat } = parsed.data;
 
-  const cutoff = new Date(Date.now() - IDEMPOTENCY_WINDOW_MS);
-  const existing = await prisma.order.findFirst({
-    where: { idChat: id_chat, total, detalle, createdAt: { gte: cutoff } },
-  });
-  if (existing) return NextResponse.json(buildLinks(existing));
+  if (id_chat) {
+    const cutoff = new Date(Date.now() - IDEMPOTENCY_WINDOW_MS);
+    const existing = await prisma.order.findFirst({
+      where: { idChat: id_chat, total, detalle, createdAt: { gte: cutoff } },
+    });
+    if (existing) return NextResponse.json(buildLinks(existing));
+  }
 
   const order = await prisma.order.create({
     data: {
@@ -52,7 +54,7 @@ export async function POST(req: NextRequest) {
       detalle,
       direccion,
       total,
-      idChat: id_chat,
+      idChat: id_chat ?? null,
     },
   });
 

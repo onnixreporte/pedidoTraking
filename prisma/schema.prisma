@@ -23,7 +23,7 @@ model Order {
   detalle          String
   direccion        String
   total            Int
-  idChat           String
+  idChat           String?
 
   status           OrderStatus @default(ENVIADO_AL_NEGOCIO)
   estimatedMinutes Int?
