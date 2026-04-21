@@ -12,6 +12,9 @@ export default async function Page({
 }) {
   const { publicId } = await params;
   const order = await prisma.order.findUnique({ where: { publicId } });
-  if (!order) notFound();
+  if (!order) {
+    console.error('[GET /t/:publicId] not found', { publicId });
+    notFound();
+  }
   return <TrackingView initial={toOrderDto(order)} publicId={publicId} />;
 }

@@ -58,5 +58,12 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  console.log('[POST /api/pedidos] created', {
+    id: order.id,
+    publicId: order.publicId,
+    cliente: order.cliente,
+    total: order.total,
+  });
+
   return NextResponse.json(buildLinks(order), { status: 201 });
 }

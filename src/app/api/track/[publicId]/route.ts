@@ -11,7 +11,10 @@ export async function GET(
 ) {
   const { publicId } = await params;
   const order = await prisma.order.findUnique({ where: { publicId } });
-  if (!order) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  if (!order) {
+    console.error('[GET /api/track] not found', { publicId });
+    return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  }
   return NextResponse.json(toOrderDto(order), {
     headers: { 'Cache-Control': 'no-store' },
   });
