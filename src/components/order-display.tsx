@@ -29,7 +29,7 @@ export function OrderDisplay({
       <header>
         <h1 className="text-2xl font-semibold">Hola {order.cliente} 👋</h1>
         <p className="text-gray-600">
-          Gracias por tu orden — envío a domicilio
+          Gracias por tu orden — envío a domicilio 🏍️
         </p>
       </header>
 
@@ -42,7 +42,7 @@ export function OrderDisplay({
         </div>
         {order.estimatedMinutes != null && (
           <div>
-            <span className="text-gray-500">Tiempo estimado: </span>
+            <span className="text-gray-500">Tiempo estimado de entrega: </span>
             <span className="font-medium">{order.estimatedMinutes} min</span>
           </div>
         )}
