@@ -23,7 +23,10 @@ export async function GET(
 ) {
   const { adminToken } = await params;
   const order = await prisma.order.findUnique({ where: { adminToken } });
-  if (!order) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  if (!order) {
+    console.error('[GET /api/admin] not found', { adminToken, length: adminToken.length });
+    return NextResponse.json({ error: 'not_found', adminToken }, { status: 404 });
+  }
   return NextResponse.json(toOrderDto(order), {
     headers: { 'Cache-Control': 'no-store' },
   });
@@ -45,8 +48,11 @@ export async function PATCH(
 
   const order = await prisma.order
     .update({ where: { adminToken }, data: parsed.data })
-    .catch(() => null);
+    .catch((e) => {
+      console.error('[PATCH /api/admin] update failed', { adminToken, error: e.message });
+      return null;
+    });
 
-  if (!order) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  if (!order) return NextResponse.json({ error: 'not_found', adminToken }, { status: 404 });
   return NextResponse.json(toOrderDto(order));
 }

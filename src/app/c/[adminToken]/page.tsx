@@ -12,6 +12,9 @@ export default async function Page({
 }) {
   const { adminToken } = await params;
   const order = await prisma.order.findUnique({ where: { adminToken } });
-  if (!order) notFound();
+  if (!order) {
+    console.error('[GET /c/:adminToken] not found', { adminToken, length: adminToken.length });
+    notFound();
+  }
   return <ControlView initial={toOrderDto(order)} adminToken={adminToken} />;
 }
