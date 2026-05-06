@@ -13,7 +13,7 @@ export function StateStepper({ current }: { current: Status }) {
             <div
               className={[
                 'mb-1 flex h-8 w-8 items-center justify-center rounded-full font-semibold',
-                active && 'bg-blue-600 text-white ring-4 ring-blue-100',
+                active && 'bg-blue-600 text-white step-active-live',
                 done && 'bg-green-500 text-white',
                 !active && !done && 'bg-gray-200 text-gray-400',
               ]
