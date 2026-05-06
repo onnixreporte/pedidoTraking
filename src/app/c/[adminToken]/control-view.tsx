@@ -19,6 +19,20 @@ export function ControlView({
   );
   const [busy, setBusy] = useState(false);
 
+  async function patch(body: Record<string, unknown>) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/${adminToken}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) setOrder((await res.json()) as OrderDto);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function setStatus(next: Status) {
     if (busy) return;
 
@@ -34,17 +48,30 @@ export function ControlView({
       if (Number.isInteger(n) && n > 0) body.estimatedMinutes = n;
     }
 
-    setBusy(true);
-    try {
-      const res = await fetch(`/api/admin/${adminToken}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (res.ok) setOrder((await res.json()) as OrderDto);
-    } finally {
-      setBusy(false);
+    await patch(body);
+  }
+
+  async function editDelivery() {
+    if (busy) return;
+    const raw = window.prompt(
+      'Costo del delivery en Gs. (vacío para quitar):',
+      String(order.deliveryFee ?? ''),
+    );
+    if (raw === null) return;
+
+    const trimmed = raw.trim();
+    if (trimmed === '') {
+      await patch({ deliveryFee: null });
+      return;
     }
+
+    const cleaned = trimmed.replace(/[^\d]/g, '');
+    const n = parseInt(cleaned, 10);
+    if (!Number.isInteger(n) || n < 0) {
+      window.alert('Monto inválido');
+      return;
+    }
+    await patch({ deliveryFee: n });
   }
 
   return (
@@ -76,6 +103,19 @@ export function ControlView({
               );
             })}
           </div>
+          <h2 className="pt-2 text-sm font-semibold uppercase tracking-wide text-gray-600">
+            Delivery
+          </h2>
+          <button
+            onClick={editDelivery}
+            disabled={busy}
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-left text-sm transition hover:bg-gray-50 disabled:opacity-50"
+          >
+            {order.deliveryFee != null
+              ? `Costo: Gs. ${order.deliveryFee.toLocaleString('es-PY')} — tocá para editar`
+              : 'Sin delivery — tocá para agregar costo'}
+          </button>
+
           <p className="pt-2 text-xs text-gray-500">
             Esta es la vista de control del local. No la compartas con el cliente.
           </p>

@@ -8,6 +8,7 @@ export type OrderDto = {
   total: number;
   status: Status;
   estimatedMinutes: number | null;
+  deliveryFee: number | null;
   createdAt: string;
 };
 
@@ -19,6 +20,7 @@ export function toOrderDto(order: Order): OrderDto {
     total: order.total,
     status: order.status as Status,
     estimatedMinutes: order.estimatedMinutes,
+    deliveryFee: order.deliveryFee,
     createdAt: order.createdAt.toISOString(),
   };
 }

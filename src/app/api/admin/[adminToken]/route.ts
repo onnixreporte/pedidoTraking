@@ -11,9 +11,13 @@ const PatchSchema = z
   .object({
     status: z.enum(STATUSES).optional(),
     estimatedMinutes: z.number().int().positive().nullable().optional(),
+    deliveryFee: z.number().int().nonnegative().nullable().optional(),
   })
   .refine(
-    (d) => d.status !== undefined || d.estimatedMinutes !== undefined,
+    (d) =>
+      d.status !== undefined ||
+      d.estimatedMinutes !== undefined ||
+      d.deliveryFee !== undefined,
     'al menos un campo requerido',
   );
 

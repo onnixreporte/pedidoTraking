@@ -11,6 +11,8 @@ export function OrderDisplay({
   controls?: React.ReactNode;
 }) {
   const items = parseDetalle(order.detalle);
+  const hasDelivery = order.deliveryFee != null && order.deliveryFee > 0;
+  const grandTotal = order.total + (order.deliveryFee ?? 0);
 
   return (
     <main className="mx-auto max-w-md space-y-6 p-4 sm:p-6">
@@ -63,10 +65,26 @@ export function OrderDisplay({
               )}
             </li>
           ))}
+          {hasDelivery && (
+            <>
+              <li className="flex gap-3 px-3 py-2 text-sm">
+                <span className="flex-1">Subtotal</span>
+                <span className="text-right font-mono tabular-nums">
+                  {formatGs(order.total)}
+                </span>
+              </li>
+              <li className="flex gap-3 px-3 py-2 text-sm">
+                <span className="flex-1">Delivery 🏍️</span>
+                <span className="text-right font-mono tabular-nums">
+                  {formatGs(order.deliveryFee!)}
+                </span>
+              </li>
+            </>
+          )}
           <li className="flex gap-3 bg-gray-50 px-3 py-2 font-semibold">
             <span className="flex-1">Total</span>
             <span className="text-right font-mono tabular-nums">
-              {formatGs(order.total)}
+              {formatGs(grandTotal)}
             </span>
           </li>
         </ul>

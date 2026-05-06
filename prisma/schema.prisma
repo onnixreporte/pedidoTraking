@@ -27,6 +27,7 @@ model Order {
 
   status           OrderStatus @default(ENVIADO_AL_NEGOCIO)
   estimatedMinutes Int?
+  deliveryFee      Int?
 
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
