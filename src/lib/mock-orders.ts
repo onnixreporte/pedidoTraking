@@ -8,6 +8,7 @@ const mockOrder = (overrides: Partial<OrderDto>): OrderDto => ({
   total: 0,
   status: 'ENVIADO_AL_NEGOCIO',
   estimatedMinutes: null,
+  deliveryFee: null,
   createdAt: new Date().toISOString(),
   ...overrides,
 });
