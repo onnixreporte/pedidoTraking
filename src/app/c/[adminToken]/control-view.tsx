@@ -78,48 +78,53 @@ export function ControlView({
     <OrderDisplay
       order={order}
       controls={
-        <section className="space-y-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-600">
-            Cambiar estado
-          </h2>
-          <div className="grid grid-cols-1 gap-2">
-            {STATUSES.map((s) => {
-              const active = s === order.status;
-              return (
-                <button
-                  key={s}
-                  onClick={() => setStatus(s)}
-                  disabled={busy}
-                  className={[
-                    'rounded-lg border px-3 py-2 text-left text-sm transition',
-                    active
-                      ? 'border-blue-600 bg-blue-600 text-white'
-                      : 'border-gray-300 bg-white hover:bg-gray-50',
-                    'disabled:opacity-50',
-                  ].join(' ')}
-                >
-                  {STATUS_LABELS[s]}
-                </button>
-              );
-            })}
-          </div>
-          <h2 className="pt-2 text-sm font-semibold uppercase tracking-wide text-gray-600">
-            Delivery
-          </h2>
-          <button
-            onClick={editDelivery}
-            disabled={busy}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-left text-sm transition hover:bg-gray-50 disabled:opacity-50"
-          >
-            {order.deliveryFee != null
-              ? `Costo: Gs. ${order.deliveryFee.toLocaleString('es-PY')} — tocá para editar`
-              : 'Sin delivery — tocá para agregar costo'}
-          </button>
+        <>
+          <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-600">
+              Cambiar estado
+            </h2>
+            <div className="grid grid-cols-1 gap-2">
+              {STATUSES.map((s) => {
+                const active = s === order.status;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setStatus(s)}
+                    disabled={busy}
+                    className={[
+                      'rounded-xl border px-3 py-2 text-left text-sm font-medium transition',
+                      active
+                        ? 'border-pink-600 bg-pink-600 text-white shadow-sm'
+                        : 'border-gray-200 bg-white hover:bg-gray-50',
+                      'disabled:opacity-50',
+                    ].join(' ')}
+                  >
+                    {STATUS_LABELS[s]}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
-          <p className="pt-2 text-xs text-gray-500">
-            Esta es la vista de control del local. No la compartas con el cliente.
+          <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-600">
+              Delivery
+            </h2>
+            <button
+              onClick={editDelivery}
+              disabled={busy}
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-left text-sm transition hover:bg-gray-50 disabled:opacity-50"
+            >
+              {order.deliveryFee != null
+                ? `Costo: Gs. ${order.deliveryFee.toLocaleString('es-PY')} — tocá para editar`
+                : 'Sin delivery — tocá para agregar costo'}
+            </button>
+          </section>
+
+          <p className="px-2 text-center text-xs text-gray-400">
+            Vista de control del local. No la compartas con el cliente.
           </p>
-        </section>
+        </>
       }
     />
   );
