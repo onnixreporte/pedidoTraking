@@ -10,6 +10,9 @@ export type OrderDto = {
   estimatedMinutes: number | null;
   deliveryFee: number | null;
   createdAt: string;
+  acceptedAt: string | null;
+  pickupAt: string | null;
+  deliveredAt: string | null;
 };
 
 export function toOrderDto(order: Order): OrderDto {
@@ -22,5 +25,8 @@ export function toOrderDto(order: Order): OrderDto {
     estimatedMinutes: order.estimatedMinutes,
     deliveryFee: order.deliveryFee,
     createdAt: order.createdAt.toISOString(),
+    acceptedAt: order.acceptedAt?.toISOString() ?? null,
+    pickupAt: order.pickupAt?.toISOString() ?? null,
+    deliveredAt: order.deliveredAt?.toISOString() ?? null,
   };
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { toOrderDto } from '@/lib/dto';
@@ -50,8 +51,16 @@ export async function PATCH(
     );
   }
 
+  const data: Prisma.OrderUpdateInput = { ...parsed.data };
+  if (parsed.data.status) {
+    const now = new Date();
+    if (parsed.data.status === 'ACEPTADO') data.acceptedAt = now;
+    if (parsed.data.status === 'REPARTIDOR_EN_CAMINO') data.pickupAt = now;
+    if (parsed.data.status === 'ENTREGADO') data.deliveredAt = now;
+  }
+
   const order = await prisma.order
-    .update({ where: { adminToken }, data: parsed.data })
+    .update({ where: { adminToken }, data })
     .catch((e) => {
       console.error('[PATCH /api/admin] update failed', { adminToken, error: e.message });
       return null;

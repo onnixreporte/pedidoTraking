@@ -27,6 +27,14 @@ export function OrderDisplay({
   const currentIdx = STATUSES.indexOf(order.status as Status);
   const showTimeRange =
     order.estimatedMinutes != null && currentIdx >= STATUSES.indexOf('ACEPTADO');
+  const rangeAnchor = order.acceptedAt ?? order.createdAt;
+
+  const stepTime: Record<Status, string | null> = {
+    ENVIADO_AL_NEGOCIO: order.createdAt,
+    ACEPTADO: order.acceptedAt,
+    REPARTIDOR_EN_CAMINO: order.pickupAt,
+    ENTREGADO: order.deliveredAt,
+  };
 
   return (
     <main className="mx-auto max-w-md space-y-4 p-4 sm:p-6">
@@ -73,7 +81,7 @@ export function OrderDisplay({
           />
           <div className="min-w-0 flex-1">
             <p className="text-lg font-semibold">
-              {formatTimeRange(order.createdAt, order.estimatedMinutes!)}
+              {formatTimeRange(rangeAnchor, order.estimatedMinutes!)}
             </p>
             <p className="text-sm text-gray-500">Hora estimada de entrega</p>
           </div>
@@ -92,13 +100,8 @@ export function OrderDisplay({
           {STATUSES.map((s, i) => {
             const done = i < currentIdx;
             const active = i === currentIdx;
-            const isFirst = i === 0;
-            const showTime = isFirst || active;
-            const timeLabel = isFirst
-              ? formatTime(order.createdAt)
-              : active
-              ? formatTime(order.createdAt)
-              : '';
+            const ts = stepTime[s];
+            const timeLabel = ts ? formatTime(ts) : '';
             const text =
               done || active
                 ? STATUS_TIMELINE_DONE[s]
@@ -126,11 +129,9 @@ export function OrderDisplay({
                   <span className="h-6 w-6 flex-shrink-0 rounded-full border-2 border-gray-300 bg-white" />
                 )}
 
-                {showTime && (
-                  <span className="w-14 text-xs tabular-nums text-gray-500">
-                    {timeLabel}
-                  </span>
-                )}
+                <span className="w-14 text-xs tabular-nums text-gray-500">
+                  {timeLabel}
+                </span>
                 <span
                   className={[
                     'flex-1 text-sm',

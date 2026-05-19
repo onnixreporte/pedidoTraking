@@ -10,6 +10,9 @@ const mockOrder = (overrides: Partial<OrderDto>): OrderDto => ({
   estimatedMinutes: null,
   deliveryFee: null,
   createdAt: new Date().toISOString(),
+  acceptedAt: null,
+  pickupAt: null,
+  deliveredAt: null,
   ...overrides,
 });
 

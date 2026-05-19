@@ -29,6 +29,10 @@ model Order {
   estimatedMinutes Int?
   deliveryFee      Int?
 
+  acceptedAt       DateTime?
+  pickupAt         DateTime?
+  deliveredAt      DateTime?
+
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
