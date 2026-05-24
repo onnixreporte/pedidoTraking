@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/session';
 import { toOrderAdminDto } from '@/lib/dto';
 import { STATUSES } from '@/lib/status';
 
@@ -32,13 +33,15 @@ const PatchSchema = z
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ adminToken: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { adminToken } = await params;
-  const order = await prisma.order.findUnique({ where: { adminToken } });
-  if (!order) {
-    return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  }
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+
+  const { id } = await params;
+  const order = await prisma.order.findUnique({ where: { id } });
+  if (!order) return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
+
   return NextResponse.json(toOrderAdminDto(order), {
     headers: { 'Cache-Control': 'no-store' },
   });
@@ -46,14 +49,17 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ adminToken: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const { adminToken } = await params;
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+
+  const { id } = await params;
   const body = await req.json().catch(() => null);
   const parsed = PatchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: 'validation_error', details: parsed.error.issues },
+      { error: 'VALIDATION_ERROR', details: parsed.error.issues },
       { status: 400 },
     );
   }
@@ -68,12 +74,12 @@ export async function PATCH(
   }
 
   const order = await prisma.order
-    .update({ where: { adminToken }, data })
+    .update({ where: { id }, data })
     .catch((e) => {
-      console.error('[PATCH /api/admin] update failed', { adminToken, error: e.message });
+      console.error('[PATCH /api/orders/:id] failed', { id, error: e.message });
       return null;
     });
 
-  if (!order) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  if (!order) return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
   return NextResponse.json(toOrderAdminDto(order));
 }

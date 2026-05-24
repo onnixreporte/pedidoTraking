@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { genAdminToken, genPublicId } from '@/lib/ids';
 import { buildLinks } from '@/lib/links';
+import { notifyNewOrder } from '@/lib/notifications';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,6 +18,7 @@ const PedidoSchema = z.object({
   direccion: z.string().trim().min(1),
   total: numericish,
   cliente: z.string().trim().min(1),
+  telefono: z.string().trim().min(6).max(40).optional(),
   id_chat: z.string().trim().min(1).optional(),
 });
 
@@ -36,7 +38,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { detalle, direccion, total, cliente, id_chat } = parsed.data;
+  const { detalle, direccion, total, cliente, telefono, id_chat } = parsed.data;
 
   if (id_chat) {
     const cutoff = new Date(Date.now() - IDEMPOTENCY_WINDOW_MS);
@@ -51,6 +53,7 @@ export async function POST(req: NextRequest) {
       publicId: genPublicId(),
       adminToken: genAdminToken(),
       cliente,
+      telefono: telefono ?? null,
       detalle,
       direccion,
       total,
@@ -64,6 +67,8 @@ export async function POST(req: NextRequest) {
     cliente: order.cliente,
     total: order.total,
   });
+
+  await notifyNewOrder(order);
 
   return NextResponse.json(buildLinks(order), { status: 201 });
 }

@@ -1,15 +1,15 @@
-import { STATUSES, STATUS_SHORT_LABELS, type Status } from '@/lib/status';
+import { STATUSES_LINEAR, STATUS_SHORT_LABELS, type Status } from '@/lib/status';
 
 export function StateStepper({ current }: { current: Status }) {
-  const currentIdx = STATUSES.indexOf(current);
+  const currentIdx = STATUSES_LINEAR.indexOf(current as (typeof STATUSES_LINEAR)[number]);
 
   return (
     <ol className="flex items-start text-[11px] sm:text-xs">
-      {STATUSES.map((s, i) => {
+      {STATUSES_LINEAR.map((s, i) => {
         const done = i < currentIdx;
         const active = i === currentIdx;
         const hasLeftLine = i > 0;
-        const hasRightLine = i < STATUSES.length - 1;
+        const hasRightLine = i < STATUSES_LINEAR.length - 1;
         const leftLineGreen = i <= currentIdx;
         const rightLineGreen = i < currentIdx;
 

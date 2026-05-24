@@ -1,7 +1,7 @@
 import type { Order } from '@prisma/client';
 import type { Status } from './status';
 
-export type OrderDto = {
+export type OrderPublicDto = {
   cliente: string;
   direccion: string;
   detalle: string;
@@ -13,9 +13,26 @@ export type OrderDto = {
   acceptedAt: string | null;
   pickupAt: string | null;
   deliveredAt: string | null;
+  cancelledAt: string | null;
 };
 
-export function toOrderDto(order: Order): OrderDto {
+export type OrderAdminDto = OrderPublicDto & {
+  id: string;
+  publicId: string;
+  adminToken: string;
+  telefono: string | null;
+  cancelReason: string | null;
+  internalNotes: string | null;
+  updatedAt: string;
+};
+
+/**
+ * @deprecated usar OrderPublicDto u OrderAdminDto según contexto.
+ * Mantenido por compatibilidad con componentes que aún lo importan.
+ */
+export type OrderDto = OrderPublicDto;
+
+export function toOrderPublicDto(order: Order): OrderPublicDto {
   return {
     cliente: order.cliente,
     direccion: order.direccion,
@@ -28,5 +45,22 @@ export function toOrderDto(order: Order): OrderDto {
     acceptedAt: order.acceptedAt?.toISOString() ?? null,
     pickupAt: order.pickupAt?.toISOString() ?? null,
     deliveredAt: order.deliveredAt?.toISOString() ?? null,
+    cancelledAt: order.cancelledAt?.toISOString() ?? null,
   };
 }
+
+export function toOrderAdminDto(order: Order): OrderAdminDto {
+  return {
+    ...toOrderPublicDto(order),
+    id: order.id,
+    publicId: order.publicId,
+    adminToken: order.adminToken,
+    telefono: order.telefono,
+    cancelReason: order.cancelReason,
+    internalNotes: order.internalNotes,
+    updatedAt: order.updatedAt.toISOString(),
+  };
+}
+
+/** @deprecated usar toOrderPublicDto */
+export const toOrderDto = toOrderPublicDto;

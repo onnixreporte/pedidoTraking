@@ -12,6 +12,23 @@ enum OrderStatus {
   ACEPTADO
   REPARTIDOR_EN_CAMINO
   ENTREGADO
+  CANCELADO
+}
+
+enum UserRole {
+  ADMIN
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  role         UserRole  @default(ADMIN)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([email])
 }
 
 model Order {
@@ -20,6 +37,7 @@ model Order {
   adminToken       String      @unique
 
   cliente          String
+  telefono         String?
   detalle          String
   direccion        String
   total            Int
@@ -32,9 +50,14 @@ model Order {
   acceptedAt       DateTime?
   pickupAt         DateTime?
   deliveredAt      DateTime?
+  cancelledAt      DateTime?
+  cancelReason     String?
+
+  internalNotes    String?
 
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
   @@index([idChat, total, createdAt])
+  @@index([status, createdAt])
 }

@@ -3,17 +3,17 @@
 import { useState } from 'react';
 import { useVisiblePoll } from '@/hooks/use-visible-poll';
 import { OrderDisplay } from '@/components/order-display';
-import type { OrderDto } from '@/lib/dto';
+import type { OrderAdminDto } from '@/lib/dto';
 import { STATUSES, STATUS_LABELS, type Status } from '@/lib/status';
 
 export function ControlView({
   initial,
   adminToken,
 }: {
-  initial: OrderDto;
+  initial: OrderAdminDto;
   adminToken: string;
 }) {
-  const [order, setOrder] = useVisiblePoll<OrderDto>(
+  const [order, setOrder] = useVisiblePoll<OrderAdminDto>(
     `/api/admin/${adminToken}`,
     initial,
   );
@@ -27,7 +27,7 @@ export function ControlView({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (res.ok) setOrder((await res.json()) as OrderDto);
+      if (res.ok) setOrder((await res.json()) as OrderAdminDto);
     } finally {
       setBusy(false);
     }

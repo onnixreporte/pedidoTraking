@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import { toOrderDto } from '@/lib/dto';
+import { toOrderPublicDto } from '@/lib/dto';
 import { TrackingView } from './tracking-view';
 
 export const dynamic = 'force-dynamic';
@@ -16,5 +16,5 @@ export default async function Page({
     console.error('[GET /t/:publicId] not found', { publicId });
     notFound();
   }
-  return <TrackingView initial={toOrderDto(order)} publicId={publicId} />;
+  return <TrackingView initial={toOrderPublicDto(order)} publicId={publicId} />;
 }

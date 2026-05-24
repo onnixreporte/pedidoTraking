@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
-import { toOrderDto } from '@/lib/dto';
+import { toOrderAdminDto } from '@/lib/dto';
 import { ControlView } from './control-view';
 
 export const dynamic = 'force-dynamic';
@@ -16,5 +16,5 @@ export default async function Page({
     console.error('[GET /c/:adminToken] not found', { adminToken, length: adminToken.length });
     notFound();
   }
-  return <ControlView initial={toOrderDto(order)} adminToken={adminToken} />;
+  return <ControlView initial={toOrderAdminDto(order)} adminToken={adminToken} />;
 }

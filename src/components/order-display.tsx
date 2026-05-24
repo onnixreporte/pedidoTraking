@@ -1,12 +1,13 @@
 import { parseDetalle } from '@/lib/parse-detalle';
 import { formatGs, formatTime, formatTimeRange } from '@/lib/format';
-import type { OrderDto } from '@/lib/dto';
+import type { OrderPublicDto } from '@/lib/dto';
 import {
-  STATUSES,
+  STATUSES_LINEAR,
   STATUS_BANNER,
   STATUS_TIMELINE_DONE,
   STATUS_TIMELINE_FUTURE,
   STATUS_TITLE,
+  type LinearStatus,
   type Status,
 } from '@/lib/status';
 import { StateStepper } from './state-stepper';
@@ -18,18 +19,21 @@ export function OrderDisplay({
   order,
   controls,
 }: {
-  order: OrderDto;
+  order: OrderPublicDto;
   controls?: React.ReactNode;
 }) {
   const items = parseDetalle(order.detalle);
   const hasDelivery = order.deliveryFee != null && order.deliveryFee > 0;
   const grandTotal = order.total + (order.deliveryFee ?? 0);
-  const currentIdx = STATUSES.indexOf(order.status as Status);
+  const isCancelled = order.status === 'CANCELADO';
+  const currentIdx = STATUSES_LINEAR.indexOf(order.status as LinearStatus);
   const showTimeRange =
-    order.estimatedMinutes != null && currentIdx >= STATUSES.indexOf('ACEPTADO');
+    !isCancelled &&
+    order.estimatedMinutes != null &&
+    currentIdx >= STATUSES_LINEAR.indexOf('ACEPTADO');
   const rangeAnchor = order.acceptedAt ?? order.createdAt;
 
-  const stepTime: Record<Status, string | null> = {
+  const stepTime: Record<LinearStatus, string | null> = {
     ENVIADO_AL_NEGOCIO: order.createdAt,
     ACEPTADO: order.acceptedAt,
     REPARTIDOR_EN_CAMINO: order.pickupAt,
@@ -53,9 +57,17 @@ export function OrderDisplay({
         </div>
       </section>
 
-      <section className="flex items-start gap-2 rounded-2xl bg-blue-50 px-3 py-3 text-sm">
+      <section
+        className={[
+          'flex items-start gap-2 rounded-2xl px-3 py-3 text-sm',
+          isCancelled ? 'bg-red-50' : 'bg-blue-50',
+        ].join(' ')}
+      >
         <svg
-          className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600"
+          className={[
+            'mt-0.5 h-5 w-5 flex-shrink-0',
+            isCancelled ? 'text-red-600' : 'text-blue-600',
+          ].join(' ')}
           viewBox="0 0 20 20"
           fill="currentColor"
           aria-hidden
@@ -66,7 +78,7 @@ export function OrderDisplay({
             clipRule="evenodd"
           />
         </svg>
-        <p className="font-medium text-blue-900">
+        <p className={isCancelled ? 'font-medium text-red-900' : 'font-medium text-blue-900'}>
           {STATUS_BANNER[order.status as Status]}
         </p>
       </section>
@@ -88,16 +100,18 @@ export function OrderDisplay({
         </section>
       )}
 
-      <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-        <StateStepper current={order.status as Status} />
-      </section>
+      {!isCancelled && (
+        <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <StateStepper current={order.status as Status} />
+        </section>
+      )}
 
       <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
         <p className="mb-3 text-center text-base font-semibold">
           {STATUS_TITLE[order.status as Status]}
         </p>
         <ol className="space-y-3">
-          {STATUSES.map((s, i) => {
+          {STATUSES_LINEAR.map((s, i) => {
             const done = i < currentIdx;
             const active = i === currentIdx;
             const ts = stepTime[s];

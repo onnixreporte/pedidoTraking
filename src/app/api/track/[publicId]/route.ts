@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { toOrderDto } from '@/lib/dto';
+import { toOrderPublicDto } from '@/lib/dto';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,7 +15,7 @@ export async function GET(
     console.error('[GET /api/track] not found', { publicId });
     return NextResponse.json({ error: 'not_found' }, { status: 404 });
   }
-  return NextResponse.json(toOrderDto(order), {
+  return NextResponse.json(toOrderPublicDto(order), {
     headers: { 'Cache-Control': 'no-store' },
   });
 }
