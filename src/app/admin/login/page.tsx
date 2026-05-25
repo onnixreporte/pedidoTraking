@@ -5,25 +5,45 @@ export const dynamic = 'force-dynamic';
 
 export default function LoginPage() {
   return (
-    <main className="flex min-h-[calc(100vh-57px)] items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 flex flex-col items-center text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="https://www.fiweex.com/sistema/img/logos/thumbnail/c6744fdc9907459976f35253c84964a5.jpeg"
-            alt="Café de Acá"
-            className="h-16 w-16 rounded-2xl object-cover shadow-sm"
-          />
-          <h1 className="mt-3 text-xl font-semibold">Café de Acá</h1>
-          <p className="text-sm text-gray-500">Panel de pedidos</p>
+    <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-[#f5f5f5] font-sans lg:flex-row lg:items-stretch lg:overflow-hidden">
+      {/* Illustration panel (desktop left / mobile top) */}
+      <div className="relative flex h-[55vh] w-full items-center justify-center overflow-hidden bg-white lg:h-auto lg:w-1/2 xl:w-[55%]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/login/illustration.png"
+          alt="Ilustración El Café de Acá"
+          className="relative z-0 h-full w-full select-none object-cover object-top lg:h-auto lg:w-[75%] lg:max-w-[520px] lg:object-contain lg:object-center"
+        />
+        {/* fade into form bg */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-24 bg-gradient-to-t from-[#f5f5f5] to-transparent lg:h-48" />
+        <p className="absolute bottom-8 left-10 z-20 hidden select-none text-[13px] text-black/30 lg:block">
+          tracking de pedidos V1 · Onnix 2026
+        </p>
+      </div>
+
+      {/* Form panel */}
+      <div className="relative flex flex-1 flex-col bg-[#f5f5f5]">
+        <div className="flex flex-1 flex-col items-center justify-center px-6 pb-10 pt-6 lg:py-0">
+          <div className="flex w-full max-w-[420px] flex-col gap-7 lg:max-w-[380px] lg:gap-8">
+            <div className="flex justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/login/logo.png"
+                alt="El Café de Acá"
+                className="h-12 select-none object-contain sm:h-14 lg:h-16"
+              />
+            </div>
+
+            <Suspense fallback={null}>
+              <LoginForm />
+            </Suspense>
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-          <Suspense fallback={null}>
-            <LoginForm />
-          </Suspense>
-        </div>
+        <p className="select-none pb-6 text-center text-[11px] text-black/30">
+          tracking de pedidos V1 · Onnix 2026
+        </p>
       </div>
-    </main>
+    </div>
   );
 }

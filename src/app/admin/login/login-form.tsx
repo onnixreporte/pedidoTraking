@@ -43,9 +43,9 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
+    <form onSubmit={onSubmit} className="flex flex-col gap-5">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="email" className="pl-1 text-sm font-normal text-[#838383]">
           Email
         </label>
         <input
@@ -56,12 +56,12 @@ export function LoginForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={busy}
-          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100 disabled:opacity-50"
+          className="h-14 w-full rounded-full border-2 border-black/10 bg-white px-6 text-base text-[#333] shadow-[0_4px_5.6px_0_rgba(0,0,0,0.1)] outline-none transition-colors focus:border-[#476e45] disabled:opacity-50 lg:h-[52px]"
         />
       </div>
 
-      <div>
-        <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="password" className="pl-1 text-sm font-normal text-[#838383]">
           Contraseña
         </label>
         <input
@@ -72,21 +72,31 @@ export function LoginForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={busy}
-          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100 disabled:opacity-50"
+          className="h-14 w-full rounded-full border-2 border-black/10 bg-white px-6 text-base text-[#333] shadow-[0_4px_5.6px_0_rgba(0,0,0,0.1)] outline-none transition-colors focus:border-[#476e45] disabled:opacity-50 lg:h-[52px]"
         />
       </div>
 
       {error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        <p className="rounded-2xl bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>
       )}
 
       <button
         type="submit"
         disabled={busy}
-        className="w-full rounded-xl bg-pink-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-pink-700 disabled:opacity-50"
+        className="mt-2 h-14 w-full cursor-pointer rounded-full border-4 border-[#335232] bg-gradient-to-r from-[#476e45] to-[#325131] text-lg font-normal tracking-wide text-[#f7f7f7] shadow-[0_4px_4px_rgba(0,0,0,0.08)] transition-all duration-150 hover:brightness-110 active:scale-[0.98] disabled:opacity-60 lg:h-[52px]"
       >
-        {busy ? 'Entrando…' : 'Entrar'}
+        {busy ? 'Entrando…' : 'Iniciar sesión'}
       </button>
+
+      <p className="text-center text-sm text-[#838383]">
+        ¿Necesitas asistencia?{' '}
+        <a
+          href="mailto:soporte@cafedeaca.com"
+          className="text-[#7a85d7] underline underline-offset-2 transition-opacity hover:opacity-80"
+        >
+          tocá acá
+        </a>
+      </p>
     </form>
   );
 }
