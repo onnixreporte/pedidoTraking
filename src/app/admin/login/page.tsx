@@ -8,7 +8,7 @@ export default function LoginPage() {
     <div className="fixed inset-0 z-50 overflow-y-auto bg-[#f5f5f5] font-sans">
       <div className="flex min-h-full min-h-[100dvh] flex-col lg:flex-row lg:items-stretch">
         {/* Illustration panel (desktop left / mobile top) */}
-        <div className="relative flex h-[clamp(220px,38dvh,360px)] w-full shrink-0 items-center justify-center overflow-hidden bg-white lg:h-auto lg:w-1/2 xl:w-[55%]">
+        <div className="relative flex h-[50dvh] w-full shrink-0 items-center justify-center overflow-hidden bg-white lg:h-auto lg:w-1/2 xl:w-[55%]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/login/illustration.png"
