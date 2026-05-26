@@ -79,10 +79,8 @@ export function ControlView({
       order={order}
       controls={
         <>
-          <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-600">
-              Cambiar estado
-            </h2>
+          <section className="card">
+            <h2 className="card-section-title">Cambiar estado</h2>
             <div className="grid grid-cols-1 gap-2">
               {STATUSES.map((s) => {
                 const active = s === order.status;
@@ -92,11 +90,10 @@ export function ControlView({
                     onClick={() => setStatus(s)}
                     disabled={busy}
                     className={[
-                      'rounded-xl border px-3 py-2 text-left text-sm font-medium transition',
+                      'rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition disabled:opacity-50',
                       active
                         ? 'border-[#b4191e] bg-[#b4191e] text-white shadow-sm'
-                        : 'border-gray-200 bg-white hover:bg-gray-50',
-                      'disabled:opacity-50',
+                        : 'border-black/10 bg-white text-[#1f1f1f] hover:bg-[#fcf9f2]',
                     ].join(' ')}
                   >
                     {STATUS_LABELS[s]}
@@ -106,14 +103,12 @@ export function ControlView({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-600">
-              Delivery
-            </h2>
+          <section className="card">
+            <h2 className="card-section-title">Delivery</h2>
             <button
               onClick={editDelivery}
               disabled={busy}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-left text-sm transition hover:bg-gray-50 disabled:opacity-50"
+              className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-left text-sm text-[#1f1f1f] transition hover:bg-[#fcf9f2] disabled:opacity-50"
             >
               {order.deliveryFee != null
                 ? `Costo: Gs. ${order.deliveryFee.toLocaleString('es-PY')} — tocá para editar`
@@ -121,7 +116,7 @@ export function ControlView({
             </button>
           </section>
 
-          <p className="px-2 text-center text-xs text-gray-400">
+          <p className="px-2 text-center text-xs text-[#8a8a8a]">
             Vista de control del local. No la compartas con el cliente.
           </p>
         </>

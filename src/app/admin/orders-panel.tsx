@@ -14,19 +14,19 @@ type SortOrder = 'desc' | 'asc';
 type ListResponse = { items: OrderAdminDto[]; total: number };
 
 const STATUS_BADGE: Record<Status, string> = {
-  ENVIADO_AL_NEGOCIO: 'bg-gray-100 text-gray-700',
-  ACEPTADO: 'bg-blue-100 text-blue-700',
-  REPARTIDOR_EN_CAMINO: 'bg-amber-100 text-amber-700',
-  ENTREGADO: 'bg-green-100 text-green-700',
-  CANCELADO: 'bg-red-100 text-red-700',
+  ENVIADO_AL_NEGOCIO: 'bg-[#b4191e]/10 text-[#b4191e]',
+  ACEPTADO: 'bg-blue-100 text-blue-800',
+  REPARTIDOR_EN_CAMINO: 'bg-amber-100 text-amber-800',
+  ENTREGADO: 'bg-[#066731]/12 text-[#066731]',
+  CANCELADO: 'bg-gray-200 text-gray-600',
 };
 
 const STATUS_BORDER: Record<Status, string> = {
-  ENVIADO_AL_NEGOCIO: 'border-l-gray-400',
+  ENVIADO_AL_NEGOCIO: 'border-l-[#b4191e]',
   ACEPTADO: 'border-l-blue-500',
   REPARTIDOR_EN_CAMINO: 'border-l-amber-500',
-  ENTREGADO: 'border-l-green-500',
-  CANCELADO: 'border-l-red-500',
+  ENTREGADO: 'border-l-[#066731]',
+  CANCELADO: 'border-l-gray-400',
 };
 
 const DATE_RANGE_LABEL: Record<DateRange, string> = {
@@ -96,20 +96,34 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Pedidos</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-3xl font-bold tracking-tight text-[#1f1f1f]">Pedidos</h1>
+          <p className="mt-1 text-sm text-[#8a8a8a]">
             {data.items.length} pedido{data.items.length === 1 ? '' : 's'} ·{' '}
             {DATE_RANGE_LABEL[dateRange]}
             {activeOnly && ' · solo activos'}
           </p>
         </div>
-        <input
-          type="search"
-          placeholder="Buscar por cliente, teléfono o dirección…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#066731] focus:ring-2 focus:ring-[#066731]/20 sm:max-w-xs"
-        />
+        <div className="relative w-full sm:max-w-xs">
+          <svg
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8a8a]"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden
+          >
+            <path
+              fillRule="evenodd"
+              d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <input
+            type="search"
+            placeholder="Buscar por cliente, teléfono o dirección…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="input-base w-full pl-9"
+          />
+        </div>
       </div>
 
       {/* Filtros: rango de fecha */}
@@ -127,28 +141,28 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
 
       {/* Toggle activos + orden */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[#1f1f1f]">
           <input
             type="checkbox"
             checked={activeOnly}
             onChange={(e) => setActiveOnly(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-[#066731] focus:ring-[#066731]"
+            className="h-4 w-4 rounded border-black/20 text-[#066731] focus:ring-[#066731]"
           />
           Solo activos
-          <span className="text-xs font-normal text-gray-400">
+          <span className="text-xs font-normal text-[#8a8a8a]">
             (solicitud / aceptado / en camino)
           </span>
         </label>
 
         <div className="flex items-center gap-2 text-sm">
-          <label htmlFor="sort" className="text-gray-500">
+          <label htmlFor="sort" className="text-[#5a5a5a]">
             Orden:
           </label>
           <select
             id="sort"
             value={sort}
             onChange={(e) => setSort(e.target.value as SortOrder)}
-            className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-[#066731] focus:ring-2 focus:ring-[#066731]/20"
+            className="input-base !py-1.5"
           >
             <option value="desc">Más recientes primero ↓</option>
             <option value="asc">Más antiguos primero ↑</option>
@@ -158,7 +172,7 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
 
       {/* Chips por estado (solo si NO está "Solo activos") */}
       {!activeOnly && (
-        <div className="mb-4 flex flex-wrap gap-2">
+        <div className="mb-6 flex flex-wrap gap-2">
           <Chip
             active={statusFilter === 'ALL'}
             onClick={() => setStatusFilter('ALL')}
@@ -179,49 +193,21 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
 
       {/* Cards */}
       {data.items.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-gray-300 bg-white py-12 text-center text-sm text-gray-400">
-          Sin pedidos en este filtro
-        </p>
+        <div className="card flex flex-col items-center gap-3 border-dashed py-16 text-center">
+          <div className="text-4xl opacity-30">🍽️</div>
+          <p className="text-sm font-medium text-[#5a5a5a]">Sin pedidos en este filtro</p>
+          <p className="text-xs text-[#8a8a8a]">
+            Probá cambiar el rango de fecha o quitar filtros
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {data.items.map((o) => (
-            <button
+            <OrderCard
               key={o.id}
+              order={o}
               onClick={() => setSelectedId(o.id)}
-              className={[
-                'group rounded-2xl border border-l-4 border-gray-100 bg-white p-4 text-left shadow-sm transition hover:shadow-md',
-                STATUS_BORDER[o.status as Status],
-              ].join(' ')}
-            >
-              <div className="mb-2 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate font-semibold">{o.cliente}</p>
-                  {o.telefono && (
-                    <p className="truncate text-xs text-gray-500">{o.telefono}</p>
-                  )}
-                </div>
-                <span
-                  className={[
-                    'flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                    STATUS_BADGE[o.status as Status],
-                  ].join(' ')}
-                >
-                  {STATUS_LABELS[o.status as Status]}
-                </span>
-              </div>
-              <p className="mb-3 truncate text-sm text-gray-600">{o.direccion}</p>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">{formatTime(o.createdAt)}</span>
-                <span className="font-mono font-semibold tabular-nums">
-                  {formatGs(o.total + (o.deliveryFee ?? 0))}
-                </span>
-              </div>
-              {o.internalNotes && (
-                <p className="mt-2 truncate rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-800">
-                  📝 {o.internalNotes}
-                </p>
-              )}
-            </button>
+            />
           ))}
         </div>
       )}
@@ -234,6 +220,65 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
         />
       )}
     </main>
+  );
+}
+
+function OrderCard({
+  order,
+  onClick,
+}: {
+  order: OrderAdminDto;
+  onClick: () => void;
+}) {
+  const hasDelivery = order.deliveryFee != null && order.deliveryFee > 0;
+
+  return (
+    <button
+      onClick={onClick}
+      className={[
+        'card card-hover border-l-[5px] text-left',
+        STATUS_BORDER[order.status as Status],
+      ].join(' ')}
+    >
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-[#1f1f1f]">{order.cliente}</p>
+          {order.telefono && (
+            <p className="truncate text-xs text-[#8a8a8a]">{order.telefono}</p>
+          )}
+        </div>
+        <span
+          className={[
+            'flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
+            STATUS_BADGE[order.status as Status],
+          ].join(' ')}
+        >
+          {STATUS_LABELS[order.status as Status]}
+        </span>
+      </div>
+
+      <p className="mb-3 truncate text-sm text-[#5a5a5a]">{order.direccion}</p>
+
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-[#8a8a8a]">{formatTime(order.createdAt)}</span>
+        <div className="flex items-center gap-1.5">
+          {hasDelivery && (
+            <span className="rounded-md bg-[#fcf9f2] px-1.5 py-0.5 text-[10px] font-medium text-[#5a5a5a]">
+              🏍️ delivery
+            </span>
+          )}
+          <span className="font-mono font-bold tabular-nums text-[#1f1f1f]">
+            {formatGs(order.total + (order.deliveryFee ?? 0))}
+          </span>
+        </div>
+      </div>
+
+      {order.internalNotes && (
+        <p className="mt-3 line-clamp-2 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-900">
+          <span className="font-semibold">📝 Nota:</span> {order.internalNotes}
+        </p>
+      )}
+    </button>
   );
 }
 
@@ -259,12 +304,16 @@ function Chip({
     <button
       onClick={onClick}
       className={[
-        'rounded-full px-3 py-1.5 text-xs font-medium transition',
-        active ? activeClass : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50',
+        'rounded-full px-3.5 py-1.5 text-xs font-medium transition',
+        active
+          ? activeClass
+          : 'border border-black/10 bg-white text-[#1f1f1f] hover:bg-[#fcf9f2]',
       ].join(' ')}
     >
       {label}
-      {typeof count === 'number' && <span className="ml-1 opacity-70">({count})</span>}
+      {typeof count === 'number' && (
+        <span className="ml-1.5 opacity-70">({count})</span>
+      )}
     </button>
   );
 }

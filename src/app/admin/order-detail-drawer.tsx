@@ -145,24 +145,26 @@ export function OrderDetailDrawer({
   const items = parseDetalle(order.detalle);
   const grandTotal = order.total + (order.deliveryFee ?? 0);
 
-  const minutesDirty = minutesDraft !== (order.estimatedMinutes != null ? String(order.estimatedMinutes) : '');
-  const deliveryDirty = deliveryDraft !== (order.deliveryFee != null ? String(order.deliveryFee) : '');
+  const minutesDirty =
+    minutesDraft !== (order.estimatedMinutes != null ? String(order.estimatedMinutes) : '');
+  const deliveryDirty =
+    deliveryDraft !== (order.deliveryFee != null ? String(order.deliveryFee) : '');
   const notesDirty = notesDraft !== (order.internalNotes ?? '');
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden />
       <aside className="relative ml-auto flex h-full w-full max-w-md flex-col overflow-y-auto bg-[#fcf9f2] shadow-2xl">
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
+        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-black/5 bg-white/85 px-4 py-3 backdrop-blur-md">
           <div className="min-w-0">
-            <p className="truncate font-semibold">{order.cliente}</p>
-            <p className="truncate text-xs text-gray-500">
+            <p className="truncate font-semibold text-[#1f1f1f]">{order.cliente}</p>
+            <p className="truncate text-xs text-[#8a8a8a]">
               {formatTime(order.createdAt)} · {STATUS_LABELS[order.status as Status]}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+            className="rounded-lg p-2 text-[#8a8a8a] transition hover:bg-black/5 hover:text-[#1f1f1f]"
             aria-label="Cerrar"
           >
             <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -172,57 +174,54 @@ export function OrderDetailDrawer({
         </header>
 
         <div className="space-y-4 p-4">
-          <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Cliente
-            </h3>
-            <p className="font-medium">{order.cliente}</p>
+          {/* Cliente */}
+          <section className="card">
+            <h3 className="card-section-title">Cliente</h3>
+            <p className="font-semibold text-[#1f1f1f]">{order.cliente}</p>
             {order.telefono && (
               <a
                 href={`tel:${order.telefono}`}
-                className="mt-1 inline-block text-sm text-blue-600 underline"
+                className="mt-1 inline-flex items-center gap-1 text-sm text-[#066731] hover:underline"
               >
                 📞 {order.telefono}
               </a>
             )}
-            <p className="mt-1 text-sm text-gray-600">{order.direccion}</p>
+            <p className="mt-2 text-sm text-[#5a5a5a]">{order.direccion}</p>
           </section>
 
-          <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Pedido
-            </h3>
-            <ul className="divide-y divide-gray-100">
+          {/* Pedido */}
+          <section className="card">
+            <h3 className="card-section-title">Pedido</h3>
+            <ul className="divide-y divide-black/5">
               {items.map((it, i) => (
                 <li key={i} className="flex gap-3 py-2 text-sm">
-                  <span className="flex-1">{it.product}</span>
+                  <span className="flex-1 text-[#1f1f1f]">{it.product}</span>
                   {it.price && (
-                    <span className="font-mono tabular-nums text-gray-700">{it.price}</span>
+                    <span className="font-mono tabular-nums text-[#5a5a5a]">{it.price}</span>
                   )}
                 </li>
               ))}
-              <li className="flex gap-3 pt-2 text-sm text-gray-600">
+              <li className="flex gap-3 pt-2 text-sm text-[#5a5a5a]">
                 <span className="flex-1">Subtotal</span>
                 <span className="font-mono tabular-nums">{formatGs(order.total)}</span>
               </li>
               {order.deliveryFee != null && order.deliveryFee > 0 && (
-                <li className="flex gap-3 py-1 text-sm text-gray-600">
+                <li className="flex gap-3 py-1 text-sm text-[#5a5a5a]">
                   <span className="flex-1">Delivery 🏍️</span>
                   <span className="font-mono tabular-nums">{formatGs(order.deliveryFee)}</span>
                 </li>
               )}
-              <li className="flex gap-3 border-t border-gray-200 pt-2 font-semibold">
+              <li className="mt-1 flex gap-3 border-t border-black/10 pt-2 text-base font-bold text-[#1f1f1f]">
                 <span className="flex-1">Total</span>
                 <span className="font-mono tabular-nums">{formatGs(grandTotal)}</span>
               </li>
             </ul>
           </section>
 
+          {/* Cambiar estado */}
           {order.status !== 'CANCELADO' && (
-            <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Cambiar estado
-              </h3>
+            <section className="card">
+              <h3 className="card-section-title">Cambiar estado</h3>
               <div className="grid grid-cols-1 gap-2">
                 {STATUSES_LINEAR.map((s) => {
                   const active = s === order.status;
@@ -232,10 +231,10 @@ export function OrderDetailDrawer({
                       onClick={() => setStatus(s)}
                       disabled={busy}
                       className={[
-                        'rounded-xl border px-3 py-2 text-left text-sm font-medium transition disabled:opacity-50',
+                        'rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition disabled:opacity-50',
                         active
-                          ? 'border-[#b4191e] bg-[#b4191e] text-white'
-                          : 'border-gray-200 bg-white hover:bg-gray-50',
+                          ? 'border-[#b4191e] bg-[#b4191e] text-white shadow-sm'
+                          : 'border-black/10 bg-white text-[#1f1f1f] hover:bg-[#fcf9f2]',
                       ].join(' ')}
                     >
                       {STATUS_LABELS[s]}
@@ -246,6 +245,7 @@ export function OrderDetailDrawer({
             </section>
           )}
 
+          {/* Tiempo estimado */}
           {order.status !== 'CANCELADO' && (
             <InlineEditSection
               title="Tiempo estimado de entrega"
@@ -262,12 +262,12 @@ export function OrderDetailDrawer({
                   onChange={(e) => setMinutesDraft(e.target.value)}
                   placeholder="30"
                   disabled={busy}
-                  className="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#066731] focus:ring-2 focus:ring-[#066731]/20 disabled:opacity-50"
+                  className="input-base flex-1 disabled:opacity-50"
                 />
                 <button
                   onClick={saveMinutes}
                   disabled={busy || !minutesDirty}
-                  className="rounded-lg bg-[#066731] px-3 py-2 text-xs font-semibold text-white hover:bg-[#055527] disabled:opacity-40"
+                  className="btn-primary"
                 >
                   Guardar
                 </button>
@@ -275,6 +275,7 @@ export function OrderDetailDrawer({
             </InlineEditSection>
           )}
 
+          {/* Delivery */}
           <InlineEditSection
             title="Costo de delivery"
             saved={flash === 'delivery'}
@@ -288,18 +289,19 @@ export function OrderDetailDrawer({
                 onChange={(e) => setDeliveryDraft(e.target.value)}
                 placeholder="0"
                 disabled={busy}
-                className="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#066731] focus:ring-2 focus:ring-[#066731]/20 disabled:opacity-50"
+                className="input-base flex-1 disabled:opacity-50"
               />
               <button
                 onClick={saveDelivery}
                 disabled={busy || !deliveryDirty}
-                className="rounded-lg bg-[#066731] px-3 py-2 text-xs font-semibold text-white hover:bg-[#055527] disabled:opacity-40"
+                className="btn-primary"
               >
                 Guardar
               </button>
             </div>
           </InlineEditSection>
 
+          {/* Notas */}
           <InlineEditSection
             title="Nota interna"
             saved={flash === 'notes'}
@@ -311,21 +313,20 @@ export function OrderDetailDrawer({
               placeholder="Ej: cliente pidió tocar timbre 2 veces"
               rows={3}
               maxLength={2000}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#066731] focus:ring-2 focus:ring-[#066731]/20"
+              className="input-base w-full"
             />
             <button
               onClick={saveNotes}
               disabled={busy || !notesDirty}
-              className="mt-2 rounded-lg bg-[#066731] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#055527] disabled:opacity-40"
+              className="btn-primary mt-2"
             >
               Guardar nota
             </button>
           </InlineEditSection>
 
-          <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-              Links
-            </h3>
+          {/* Links */}
+          <section className="card">
+            <h3 className="card-section-title">Links</h3>
             <LinkRow
               label="Tracking del cliente"
               url={trackingUrl(order.publicId)}
@@ -338,15 +339,16 @@ export function OrderDetailDrawer({
             />
           </section>
 
+          {/* Zona peligrosa */}
           {order.status !== 'CANCELADO' && (
-            <section className="rounded-2xl border border-red-200 bg-white p-4 shadow-sm">
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-600">
+            <section className="rounded-2xl border border-[#b4191e]/20 bg-white p-4 shadow-[var(--shadow-card)]">
+              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#b4191e]">
                 Zona peligrosa
               </h3>
               <button
                 onClick={cancelOrder}
                 disabled={busy}
-                className="w-full rounded-xl border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                className="w-full rounded-xl border border-[#b4191e]/30 bg-white px-3 py-2 text-sm font-medium text-[#b4191e] transition hover:bg-[#b4191e]/5 disabled:opacity-50"
               >
                 Cancelar pedido
               </button>
@@ -354,11 +356,11 @@ export function OrderDetailDrawer({
           )}
 
           {order.status === 'CANCELADO' && order.cancelReason && (
-            <section className="rounded-2xl border border-red-200 bg-red-50 p-4">
-              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-red-700">
+            <section className="rounded-2xl border border-[#b4191e]/20 bg-[#b4191e]/5 p-4">
+              <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#b4191e]">
                 Motivo de cancelación
               </h3>
-              <p className="text-sm text-red-900">{order.cancelReason}</p>
+              <p className="text-sm text-[#1f1f1f]">{order.cancelReason}</p>
             </section>
           )}
         </div>
@@ -379,12 +381,16 @@ function InlineEditSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+    <section className="card">
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</h3>
-        {saved && <span className="text-xs text-green-600">✓ Guardado</span>}
+        <h3 className="card-section-title !mb-0">{title}</h3>
+        {saved && (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-[#066731]">
+            ✓ Guardado
+          </span>
+        )}
       </div>
-      {hint && <p className="mb-2 text-xs text-gray-400">{hint}</p>}
+      {hint && <p className="mb-2 text-xs text-[#8a8a8a]">{hint}</p>}
       {children}
     </section>
   );
@@ -400,19 +406,16 @@ function LinkRow({
   onCopy: (url: string) => void;
 }) {
   return (
-    <div className="mb-2 last:mb-0">
-      <p className="mb-1 text-xs text-gray-500">{label}</p>
+    <div className="mb-3 last:mb-0">
+      <p className="mb-1 text-xs text-[#8a8a8a]">{label}</p>
       <div className="flex gap-2">
         <input
           readOnly
           value={url}
-          className="flex-1 truncate rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs"
+          className="flex-1 truncate rounded-lg border border-black/10 bg-[#fcf9f2] px-2 py-1.5 text-xs text-[#1f1f1f]"
           onClick={(e) => (e.target as HTMLInputElement).select()}
         />
-        <button
-          onClick={() => onCopy(url)}
-          className="rounded-lg bg-[#066731] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#055527]"
-        >
+        <button onClick={() => onCopy(url)} className="btn-primary">
           Copiar
         </button>
       </div>

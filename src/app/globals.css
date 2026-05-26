@@ -2,6 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design tokens — Café de Acá brand */
+:root {
+  --bg-cream:      #fcf9f2;
+  --bg-cream-2:    #f5efde;
+  --brand-red:     #b4191e;
+  --brand-green:   #066731;
+  --brand-green-2: #055527;
+  --ink:           #1f1f1f;
+  --ink-soft:      #5a5a5a;
+  --ink-mute:      #8a8a8a;
+  --line:          rgba(0, 0, 0, 0.06);
+  --line-strong:   rgba(0, 0, 0, 0.10);
+  --shadow-card:   0 1px 2px rgba(20, 12, 0, 0.04), 0 1px 3px rgba(20, 12, 0, 0.03);
+  --shadow-hover:  0 4px 14px rgba(20, 12, 0, 0.08);
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border bg-white p-4 transition-shadow;
+    border-color: var(--line);
+    box-shadow: var(--shadow-card);
+  }
+  .card-hover:hover {
+    box-shadow: var(--shadow-hover);
+  }
+  .card-section-title {
+    @apply mb-3 text-[11px] font-semibold uppercase tracking-[0.08em];
+    color: var(--ink-mute);
+  }
+  .input-base {
+    @apply rounded-xl border border-black/10 px-3 py-2 text-sm outline-none transition;
+  }
+  .input-base:focus {
+    border-color: var(--brand-green);
+    box-shadow: 0 0 0 3px rgba(6, 103, 49, 0.15);
+  }
+  .btn-primary {
+    @apply rounded-lg px-3 py-2 text-xs font-semibold text-white transition disabled:opacity-40;
+    background-color: var(--brand-green);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--brand-green-2);
+  }
+}
+
 @keyframes step-breathe {
   0%, 100% {
     transform: scale(1);
