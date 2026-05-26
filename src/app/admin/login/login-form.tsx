@@ -1,10 +1,9 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 export function LoginForm() {
-  const router = useRouter();
   const search = useSearchParams();
   const nextPath = search.get('next') ?? '/admin';
 
@@ -27,8 +26,9 @@ export function LoginForm() {
       });
 
       if (res.ok) {
-        router.push(nextPath);
-        router.refresh();
+        // Hard navigation para garantizar que la cookie viaje en la próxima request
+        // (evita race condition con middleware en soft-navigation de Next router)
+        window.location.href = nextPath;
         return;
       }
 

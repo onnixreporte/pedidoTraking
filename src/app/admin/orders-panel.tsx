@@ -7,7 +7,9 @@ import type { OrderAdminDto } from '@/lib/dto';
 import { STATUSES, STATUS_LABELS, type Status } from '@/lib/status';
 import { OrderDetailDrawer } from './order-detail-drawer';
 
-type FilterOption = Status | 'ALL';
+type FilterStatus = Status | 'ALL';
+type DateRange = 'today' | 'yesterday' | 'last7' | 'all';
+type SortOrder = 'desc' | 'asc';
 
 type ListResponse = { items: OrderAdminDto[]; total: number };
 
@@ -20,25 +22,40 @@ const STATUS_BADGE: Record<Status, string> = {
 };
 
 const STATUS_BORDER: Record<Status, string> = {
-  ENVIADO_AL_NEGOCIO: 'border-gray-300',
-  ACEPTADO: 'border-blue-300',
-  REPARTIDOR_EN_CAMINO: 'border-amber-300',
-  ENTREGADO: 'border-green-300',
-  CANCELADO: 'border-red-300',
+  ENVIADO_AL_NEGOCIO: 'border-l-gray-400',
+  ACEPTADO: 'border-l-blue-500',
+  REPARTIDOR_EN_CAMINO: 'border-l-amber-500',
+  ENTREGADO: 'border-l-green-500',
+  CANCELADO: 'border-l-red-500',
 };
 
+const DATE_RANGE_LABEL: Record<DateRange, string> = {
+  today: 'Hoy',
+  yesterday: 'Ayer',
+  last7: 'Últimos 7 días',
+  all: 'Todos',
+};
+
+const ACTIVE_STATUSES: Status[] = ['ENVIADO_AL_NEGOCIO', 'ACEPTADO', 'REPARTIDOR_EN_CAMINO'];
+
 export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
-  const [filter, setFilter] = useState<FilterOption>('ALL');
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>('ALL');
+  const [dateRange, setDateRange] = useState<DateRange>('today');
+  const [activeOnly, setActiveOnly] = useState(false);
+  const [sort, setSort] = useState<SortOrder>('desc');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const url = useMemo(() => {
     const params = new URLSearchParams();
-    if (filter !== 'ALL') params.set('status', filter);
+    if (!activeOnly && statusFilter !== 'ALL') params.set('status', statusFilter);
+    if (activeOnly) params.set('activeOnly', 'true');
     if (search.trim()) params.set('search', search.trim());
+    params.set('dateRange', dateRange);
+    params.set('sort', sort);
     params.set('limit', '100');
     return `/api/orders?${params.toString()}`;
-  }, [filter, search]);
+  }, [statusFilter, activeOnly, search, dateRange, sort]);
 
   const initialResponse = useMemo<ListResponse>(
     () => ({ items: initial, total: initial.length }),
@@ -47,7 +64,6 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
 
   const [data, setData] = useVisiblePoll<ListResponse>(url, initialResponse);
 
-  // Reset selection if it's no longer in the list
   useEffect(() => {
     if (selectedId && !data.items.find((o) => o.id === selectedId)) {
       setSelectedId(null);
@@ -57,7 +73,7 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
   const selected = data.items.find((o) => o.id === selectedId) ?? null;
 
   const counts = useMemo(() => {
-    const c: Record<FilterOption, number> = {
+    const c: Record<FilterStatus, number> = {
       ALL: data.items.length,
       ENVIADO_AL_NEGOCIO: 0,
       ACEPTADO: 0,
@@ -82,7 +98,9 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
         <div>
           <h1 className="text-2xl font-semibold">Pedidos</h1>
           <p className="text-sm text-gray-500">
-            {data.items.length} pedido{data.items.length === 1 ? '' : 's'} en pantalla
+            {data.items.length} pedido{data.items.length === 1 ? '' : 's'} ·{' '}
+            {DATE_RANGE_LABEL[dateRange]}
+            {activeOnly && ' · solo activos'}
           </p>
         </div>
         <input
@@ -94,24 +112,72 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
         />
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        <FilterChip
-          active={filter === 'ALL'}
-          onClick={() => setFilter('ALL')}
-          label="Todos"
-          count={counts.ALL}
-        />
-        {STATUSES.map((s) => (
-          <FilterChip
-            key={s}
-            active={filter === s}
-            onClick={() => setFilter(s)}
-            label={STATUS_LABELS[s]}
-            count={counts[s]}
+      {/* Filtros: rango de fecha */}
+      <div className="mb-3 flex flex-wrap gap-2">
+        {(Object.keys(DATE_RANGE_LABEL) as DateRange[]).map((r) => (
+          <Chip
+            key={r}
+            active={dateRange === r}
+            onClick={() => setDateRange(r)}
+            label={DATE_RANGE_LABEL[r]}
+            variant="date"
           />
         ))}
       </div>
 
+      {/* Toggle activos + orden */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-700">
+          <input
+            type="checkbox"
+            checked={activeOnly}
+            onChange={(e) => setActiveOnly(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"
+          />
+          Solo activos
+          <span className="text-xs font-normal text-gray-400">
+            (solicitud / aceptado / en camino)
+          </span>
+        </label>
+
+        <div className="flex items-center gap-2 text-sm">
+          <label htmlFor="sort" className="text-gray-500">
+            Orden:
+          </label>
+          <select
+            id="sort"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortOrder)}
+            className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
+          >
+            <option value="desc">Más recientes primero ↓</option>
+            <option value="asc">Más antiguos primero ↑</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Chips por estado (solo si NO está "Solo activos") */}
+      {!activeOnly && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          <Chip
+            active={statusFilter === 'ALL'}
+            onClick={() => setStatusFilter('ALL')}
+            label="Todos"
+            count={counts.ALL}
+          />
+          {STATUSES.map((s) => (
+            <Chip
+              key={s}
+              active={statusFilter === s}
+              onClick={() => setStatusFilter(s)}
+              label={STATUS_LABELS[s]}
+              count={counts[s]}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Cards */}
       {data.items.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-gray-300 bg-white py-12 text-center text-sm text-gray-400">
           Sin pedidos en este filtro
@@ -123,7 +189,7 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
               key={o.id}
               onClick={() => setSelectedId(o.id)}
               className={[
-                'group rounded-2xl border-l-4 border border-gray-100 bg-white p-4 text-left shadow-sm transition hover:shadow-md',
+                'group rounded-2xl border border-l-4 border-gray-100 bg-white p-4 text-left shadow-sm transition hover:shadow-md',
                 STATUS_BORDER[o.status as Status],
               ].join(' ')}
             >
@@ -171,28 +237,32 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
   );
 }
 
-function FilterChip({
+function Chip({
   active,
   onClick,
   label,
   count,
+  variant = 'status',
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
-  count: number;
+  count?: number;
+  variant?: 'status' | 'date';
 }) {
+  const activeClass =
+    variant === 'date' ? 'bg-gray-900 text-white shadow-sm' : 'bg-pink-600 text-white shadow-sm';
+
   return (
     <button
       onClick={onClick}
       className={[
         'rounded-full px-3 py-1.5 text-xs font-medium transition',
-        active
-          ? 'bg-pink-600 text-white shadow-sm'
-          : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50',
+        active ? activeClass : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50',
       ].join(' ')}
     >
-      {label} <span className="ml-1 opacity-70">({count})</span>
+      {label}
+      {typeof count === 'number' && <span className="ml-1 opacity-70">({count})</span>}
     </button>
   );
 }
