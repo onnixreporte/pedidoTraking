@@ -116,7 +116,13 @@ export async function GET(req: NextRequest) {
     if (bounds.lt) where.createdAt.lt = bounds.lt;
   }
 
-  const [total, orders] = await Promise.all([
+  // Counts: misma fecha + búsqueda, pero SIN filtro de status/activeOnly,
+  // para que las chips muestren la distribución real por estado.
+  const countsWhere: Prisma.OrderWhereInput = {};
+  if (where.OR) countsWhere.OR = where.OR;
+  if (where.createdAt) countsWhere.createdAt = where.createdAt;
+
+  const [total, orders, grouped] = await Promise.all([
     prisma.order.count({ where }),
     prisma.order.findMany({
       where,
@@ -124,7 +130,25 @@ export async function GET(req: NextRequest) {
       skip: (page - 1) * limit,
       take: limit,
     }),
+    prisma.order.groupBy({
+      by: ['status'],
+      where: countsWhere,
+      _count: { _all: true },
+    }),
   ]);
+
+  const counts = {
+    ENVIADO_AL_NEGOCIO: 0,
+    ACEPTADO: 0,
+    REPARTIDOR_EN_CAMINO: 0,
+    ENTREGADO: 0,
+    CANCELADO: 0,
+    ALL: 0,
+  };
+  for (const g of grouped) {
+    counts[g.status as keyof typeof counts] = g._count._all;
+    counts.ALL += g._count._all;
+  }
 
   return NextResponse.json(
     {
@@ -133,6 +157,7 @@ export async function GET(req: NextRequest) {
       page,
       limit,
       totalPages: Math.max(1, Math.ceil(total / limit)),
+      counts,
     },
     { headers: { 'Cache-Control': 'no-store' } },
   );

@@ -19,7 +19,20 @@ function todayIso(): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-type ListResponse = { items: OrderAdminDto[]; total: number };
+type ListResponse = {
+  items: OrderAdminDto[];
+  total: number;
+  counts?: Record<FilterStatus, number>;
+};
+
+const EMPTY_COUNTS: Record<FilterStatus, number> = {
+  ALL: 0,
+  ENVIADO_AL_NEGOCIO: 0,
+  ACEPTADO: 0,
+  REPARTIDOR_EN_CAMINO: 0,
+  ENTREGADO: 0,
+  CANCELADO: 0,
+};
 
 const STATUS_BADGE: Record<Status, string> = {
   ENVIADO_AL_NEGOCIO: 'bg-[#b4191e]/10 text-[#b4191e]',
@@ -117,18 +130,9 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
 
   const selected = data.items.find((o) => o.id === selectedId) ?? null;
 
-  const counts = useMemo(() => {
-    const c: Record<FilterStatus, number> = {
-      ALL: data.items.length,
-      ENVIADO_AL_NEGOCIO: 0,
-      ACEPTADO: 0,
-      REPARTIDOR_EN_CAMINO: 0,
-      ENTREGADO: 0,
-      CANCELADO: 0,
-    };
-    for (const o of data.items) c[o.status as Status]++;
-    return c;
-  }, [data.items]);
+  // counts vienen del servidor (groupBy ignorando filtro de status).
+  // Fallback a 0 si el fetch inicial todavia no llego.
+  const counts = data.counts ?? EMPTY_COUNTS;
 
   function patched(order: OrderAdminDto) {
     setData((prev) => ({
