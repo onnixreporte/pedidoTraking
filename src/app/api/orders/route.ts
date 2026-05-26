@@ -9,13 +9,16 @@ import { STATUSES } from '@/lib/status';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const DateRange = z.enum(['today', 'yesterday', 'last7', 'all']);
+const DateRange = z.enum(['today', 'yesterday', 'last7', 'all', 'custom']);
 const SortOrder = z.enum(['desc', 'asc']);
+const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 const QuerySchema = z.object({
   status: z.union([z.enum(STATUSES), z.literal('ALL')]).default('ALL'),
   search: z.string().trim().min(1).optional(),
   dateRange: DateRange.default('today'),
+  from: IsoDate.optional(),
+  to: IsoDate.optional(),
   activeOnly: z
     .union([z.literal('true'), z.literal('false')])
     .default('false')
@@ -27,7 +30,11 @@ const QuerySchema = z.object({
 
 const ACTIVE_STATUSES = ['ENVIADO_AL_NEGOCIO', 'ACEPTADO', 'REPARTIDOR_EN_CAMINO'] as const;
 
-function dateRangeBounds(range: z.infer<typeof DateRange>): { gte?: Date; lt?: Date } {
+function dateRangeBounds(
+  range: z.infer<typeof DateRange>,
+  from?: string,
+  to?: string,
+): { gte?: Date; lt?: Date } {
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -47,6 +54,17 @@ function dateRangeBounds(range: z.infer<typeof DateRange>): { gte?: Date; lt?: D
       sevenAgo.setDate(sevenAgo.getDate() - 6);
       return { gte: sevenAgo };
     }
+    case 'custom': {
+      if (!from && !to) return {};
+      const bounds: { gte?: Date; lt?: Date } = {};
+      if (from) bounds.gte = new Date(`${from}T00:00:00`);
+      if (to) {
+        const toEnd = new Date(`${to}T00:00:00`);
+        toEnd.setDate(toEnd.getDate() + 1);
+        bounds.lt = toEnd;
+      }
+      return bounds;
+    }
     case 'all':
     default:
       return {};
@@ -62,6 +80,8 @@ export async function GET(req: NextRequest) {
     status: url.searchParams.get('status') ?? undefined,
     search: url.searchParams.get('search') ?? undefined,
     dateRange: url.searchParams.get('dateRange') ?? undefined,
+    from: url.searchParams.get('from') ?? undefined,
+    to: url.searchParams.get('to') ?? undefined,
     activeOnly: url.searchParams.get('activeOnly') ?? undefined,
     sort: url.searchParams.get('sort') ?? undefined,
     page: url.searchParams.get('page') ?? undefined,
@@ -71,7 +91,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'VALIDATION_ERROR' }, { status: 400 });
   }
 
-  const { status, search, dateRange, activeOnly, sort, page, limit } = parsed.data;
+  const { status, search, dateRange, from, to, activeOnly, sort, page, limit } = parsed.data;
 
   const where: Prisma.OrderWhereInput = {};
 
@@ -89,7 +109,7 @@ export async function GET(req: NextRequest) {
     ];
   }
 
-  const bounds = dateRangeBounds(dateRange);
+  const bounds = dateRangeBounds(dateRange, from, to);
   if (bounds.gte || bounds.lt) {
     where.createdAt = {};
     if (bounds.gte) where.createdAt.gte = bounds.gte;

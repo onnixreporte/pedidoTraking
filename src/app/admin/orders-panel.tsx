@@ -8,8 +8,16 @@ import { STATUSES, STATUS_LABELS, type Status } from '@/lib/status';
 import { OrderDetailDrawer } from './order-detail-drawer';
 
 type FilterStatus = Status | 'ALL';
-type DateRange = 'today' | 'yesterday' | 'last7' | 'all';
+type DateRange = 'today' | 'yesterday' | 'last7' | 'all' | 'custom';
 type SortOrder = 'desc' | 'asc';
+
+function todayIso(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 type ListResponse = { items: OrderAdminDto[]; total: number };
 
@@ -34,6 +42,7 @@ const DATE_RANGE_LABEL: Record<DateRange, string> = {
   yesterday: 'Ayer',
   last7: 'Últimos 7 días',
   all: 'Todos',
+  custom: 'Personalizado',
 };
 
 const ACTIVE_STATUSES: Status[] = ['ENVIADO_AL_NEGOCIO', 'ACEPTADO', 'REPARTIDOR_EN_CAMINO'];
@@ -41,6 +50,8 @@ const ACTIVE_STATUSES: Status[] = ['ENVIADO_AL_NEGOCIO', 'ACEPTADO', 'REPARTIDOR
 export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('ALL');
   const [dateRange, setDateRange] = useState<DateRange>('today');
+  const [fromDate, setFromDate] = useState<string>(todayIso());
+  const [toDate, setToDate] = useState<string>(todayIso());
   const [activeOnly, setActiveOnly] = useState(false);
   const [sort, setSort] = useState<SortOrder>('desc');
   const [search, setSearch] = useState('');
@@ -52,10 +63,14 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
     if (activeOnly) params.set('activeOnly', 'true');
     if (search.trim()) params.set('search', search.trim());
     params.set('dateRange', dateRange);
+    if (dateRange === 'custom') {
+      if (fromDate) params.set('from', fromDate);
+      if (toDate) params.set('to', toDate);
+    }
     params.set('sort', sort);
     params.set('limit', '100');
     return `/api/orders?${params.toString()}`;
-  }, [statusFilter, activeOnly, search, dateRange, sort]);
+  }, [statusFilter, activeOnly, search, dateRange, fromDate, toDate, sort]);
 
   const initialResponse = useMemo<ListResponse>(
     () => ({ items: initial, total: initial.length }),
@@ -138,6 +153,49 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
           />
         ))}
       </div>
+
+      {/* Inputs de rango personalizado */}
+      {dateRange === 'custom' && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-black/5 bg-white p-3 shadow-[var(--shadow-card)]">
+          <div className="flex items-center gap-2">
+            <label htmlFor="from" className="text-xs font-medium text-[#5a5a5a]">
+              Desde
+            </label>
+            <input
+              id="from"
+              type="date"
+              value={fromDate}
+              max={toDate || undefined}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="input-base !py-1.5 text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="to" className="text-xs font-medium text-[#5a5a5a]">
+              Hasta
+            </label>
+            <input
+              id="to"
+              type="date"
+              value={toDate}
+              min={fromDate || undefined}
+              max={todayIso()}
+              onChange={(e) => setToDate(e.target.value)}
+              className="input-base !py-1.5 text-sm"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setFromDate(todayIso());
+              setToDate(todayIso());
+            }}
+            className="ml-auto text-xs text-[#8a8a8a] underline hover:text-[#1f1f1f]"
+          >
+            Resetear a hoy
+          </button>
+        </div>
+      )}
 
       {/* Toggle activos + orden */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
