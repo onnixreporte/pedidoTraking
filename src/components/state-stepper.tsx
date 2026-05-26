@@ -19,7 +19,7 @@ export function StateStepper({ current }: { current: Status }) {
               className={[
                 'mb-2 font-medium leading-tight',
                 done && 'text-green-600',
-                active && 'text-pink-600',
+                active && 'text-[#b4191e]',
                 !done && !active && 'text-gray-400',
               ]
                 .filter(Boolean)
@@ -58,7 +58,7 @@ export function StateStepper({ current }: { current: Status }) {
                 </span>
               )}
               {active && (
-                <span className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full bg-pink-600 step-active-live">
+                <span className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full bg-[#b4191e] step-active-live">
                   <span className="h-2.5 w-2.5 rounded-full bg-white" />
                 </span>
               )}

@@ -12,7 +12,7 @@ export default async function AdminLayout({
   const session = await getSession();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#fcf9f2]">
       {session ? (
         <AdminHeader email={session.email} />
       ) : (

@@ -42,8 +42,8 @@ export function renderNewOrderEmail(order: Order): NewOrderEmail {
   const html = `<!doctype html>
 <html lang="es">
 <head><meta charset="utf-8"><title>${escapeHtml(subject)}</title></head>
-<body style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f9fafb;margin:0;padding:24px;color:#111">
-  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
+<body style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#fcf9f2;margin:0;padding:24px;color:#111">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.05);border-top:4px solid #066731">
     <h1 style="margin:0 0 4px;font-size:20px">📦 Nuevo pedido</h1>
     <p style="margin:0 0 20px;color:#666">Acabás de recibir un pedido nuevo de <b>${escapeHtml(order.cliente)}</b>.</p>
 
@@ -61,7 +61,7 @@ export function renderNewOrderEmail(order: Order): NewOrderEmail {
     </table>
 
     <div style="margin-top:24px;text-align:center">
-      <a href="${escapeHtml(adminLink(order))}" style="display:inline-block;background:#db2777;color:#fff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:600">Abrir pedido</a>
+      <a href="${escapeHtml(adminLink(order))}" style="display:inline-block;background:#066731;color:#fff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:600">Abrir pedido</a>
     </div>
 
     <p style="margin-top:24px;color:#999;font-size:12px;text-align:center">

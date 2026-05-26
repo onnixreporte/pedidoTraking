@@ -135,7 +135,7 @@ export function OrderDisplay({
                   </span>
                 )}
                 {active && (
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-pink-600">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#b4191e]">
                     <span className="h-2 w-2 rounded-full bg-white" />
                   </span>
                 )}
@@ -150,7 +150,7 @@ export function OrderDisplay({
                   className={[
                     'flex-1 text-sm',
                     done && 'text-green-600',
-                    active && 'font-semibold text-pink-600',
+                    active && 'font-semibold text-[#b4191e]',
                     !done && !active && 'text-gray-400',
                   ]
                     .filter(Boolean)

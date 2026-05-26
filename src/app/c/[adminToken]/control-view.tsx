@@ -94,7 +94,7 @@ export function ControlView({
                     className={[
                       'rounded-xl border px-3 py-2 text-left text-sm font-medium transition',
                       active
-                        ? 'border-pink-600 bg-pink-600 text-white shadow-sm'
+                        ? 'border-[#b4191e] bg-[#b4191e] text-white shadow-sm'
                         : 'border-gray-200 bg-white hover:bg-gray-50',
                       'disabled:opacity-50',
                     ].join(' ')}

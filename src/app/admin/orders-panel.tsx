@@ -108,7 +108,7 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
           placeholder="Buscar por cliente, teléfono o dirección…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100 sm:max-w-xs"
+          className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#066731] focus:ring-2 focus:ring-[#066731]/20 sm:max-w-xs"
         />
       </div>
 
@@ -132,7 +132,7 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
             type="checkbox"
             checked={activeOnly}
             onChange={(e) => setActiveOnly(e.target.checked)}
-            className="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"
+            className="h-4 w-4 rounded border-gray-300 text-[#066731] focus:ring-[#066731]"
           />
           Solo activos
           <span className="text-xs font-normal text-gray-400">
@@ -148,7 +148,7 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
             id="sort"
             value={sort}
             onChange={(e) => setSort(e.target.value as SortOrder)}
-            className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
+            className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm outline-none focus:border-[#066731] focus:ring-2 focus:ring-[#066731]/20"
           >
             <option value="desc">Más recientes primero ↓</option>
             <option value="asc">Más antiguos primero ↑</option>
@@ -251,7 +251,9 @@ function Chip({
   variant?: 'status' | 'date';
 }) {
   const activeClass =
-    variant === 'date' ? 'bg-gray-900 text-white shadow-sm' : 'bg-pink-600 text-white shadow-sm';
+    variant === 'date'
+      ? 'bg-[#066731] text-white shadow-sm'
+      : 'bg-[#b4191e] text-white shadow-sm';
 
   return (
     <button
