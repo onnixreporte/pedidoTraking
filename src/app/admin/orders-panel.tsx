@@ -45,6 +45,36 @@ const DATE_RANGE_LABEL: Record<DateRange, string> = {
   custom: 'Personalizado',
 };
 
+const QUICK_RANGES: readonly DateRange[] = ['today', 'yesterday', 'last7', 'all'] as const;
+
+function isoOffset(daysAgo: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function presetDates(range: DateRange): { from: string; to: string } {
+  const today = isoOffset(0);
+  switch (range) {
+    case 'today':
+      return { from: today, to: today };
+    case 'yesterday': {
+      const y = isoOffset(1);
+      return { from: y, to: y };
+    }
+    case 'last7':
+      return { from: isoOffset(6), to: today };
+    case 'all':
+      return { from: '', to: '' };
+    case 'custom':
+    default:
+      return { from: today, to: today };
+  }
+}
+
 const ACTIVE_STATUSES: Status[] = ['ENVIADO_AL_NEGOCIO', 'ACEPTADO', 'REPARTIDOR_EN_CAMINO'];
 
 export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
@@ -141,63 +171,67 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
         </div>
       </div>
 
-      {/* Filtros: rango de fecha */}
+      {/* Filtros: rango de fecha (chips rápidos) */}
       <div className="mb-3 flex flex-wrap gap-2">
-        {(Object.keys(DATE_RANGE_LABEL) as DateRange[]).map((r) => (
+        {QUICK_RANGES.map((r) => (
           <Chip
             key={r}
             active={dateRange === r}
-            onClick={() => setDateRange(r)}
+            onClick={() => {
+              setDateRange(r);
+              const preset = presetDates(r);
+              setFromDate(preset.from);
+              setToDate(preset.to);
+            }}
             label={DATE_RANGE_LABEL[r]}
             variant="date"
           />
         ))}
+        {dateRange === 'custom' && (
+          <span className="self-center rounded-full bg-[#066731]/10 px-3 py-1 text-xs font-medium text-[#066731]">
+            Rango personalizado
+          </span>
+        )}
       </div>
 
-      {/* Inputs de rango personalizado */}
-      {dateRange === 'custom' && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-black/5 bg-white p-3 shadow-[var(--shadow-card)]">
-          <div className="flex items-center gap-2">
-            <label htmlFor="from" className="text-xs font-medium text-[#5a5a5a]">
-              Desde
-            </label>
-            <input
-              id="from"
-              type="date"
-              value={fromDate}
-              max={toDate || undefined}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="input-base !py-1.5 text-sm"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <label htmlFor="to" className="text-xs font-medium text-[#5a5a5a]">
-              Hasta
-            </label>
-            <input
-              id="to"
-              type="date"
-              value={toDate}
-              min={fromDate || undefined}
-              max={todayIso()}
-              onChange={(e) => setToDate(e.target.value)}
-              className="input-base !py-1.5 text-sm"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setFromDate(todayIso());
-              setToDate(todayIso());
+      {/* Inputs de rango (siempre visibles) */}
+      <div className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl border border-black/5 bg-white p-3 shadow-[var(--shadow-card)]">
+        <div className="flex items-center gap-2">
+          <label htmlFor="from" className="text-xs font-medium text-[#5a5a5a]">
+            Desde
+          </label>
+          <input
+            id="from"
+            type="date"
+            value={fromDate}
+            max={toDate || undefined}
+            onChange={(e) => {
+              setFromDate(e.target.value);
+              setDateRange('custom');
             }}
-            className="ml-auto text-xs text-[#8a8a8a] underline hover:text-[#1f1f1f]"
-          >
-            Resetear a hoy
-          </button>
+            className="input-base !py-1.5 text-sm"
+          />
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          <label htmlFor="to" className="text-xs font-medium text-[#5a5a5a]">
+            Hasta
+          </label>
+          <input
+            id="to"
+            type="date"
+            value={toDate}
+            min={fromDate || undefined}
+            max={todayIso()}
+            onChange={(e) => {
+              setToDate(e.target.value);
+              setDateRange('custom');
+            }}
+            className="input-base !py-1.5 text-sm"
+          />
+        </div>
+      </div>
 
-      {/* Toggle activos + orden */}
+      {/* Solo activos + orden */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-[#1f1f1f]">
           <input
