@@ -54,6 +54,7 @@ model Order {
   cancelReason     String?
 
   internalNotes    String?
+  additionalNote   String?
 
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt

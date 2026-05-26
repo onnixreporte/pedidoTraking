@@ -9,6 +9,7 @@ export type OrderPublicDto = {
   status: Status;
   estimatedMinutes: number | null;
   deliveryFee: number | null;
+  additionalNote: string | null;
   createdAt: string;
   acceptedAt: string | null;
   pickupAt: string | null;
@@ -41,6 +42,7 @@ export function toOrderPublicDto(order: Order): OrderPublicDto {
     status: order.status as Status,
     estimatedMinutes: order.estimatedMinutes,
     deliveryFee: order.deliveryFee,
+    additionalNote: order.additionalNote,
     createdAt: order.createdAt.toISOString(),
     acceptedAt: order.acceptedAt?.toISOString() ?? null,
     pickupAt: order.pickupAt?.toISOString() ?? null,

@@ -365,9 +365,15 @@ function OrderCard({
         </div>
       </div>
 
-      {order.internalNotes && (
+      {order.additionalNote && (
         <p className="mt-3 line-clamp-2 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-900">
-          <span className="font-semibold">📝 Nota:</span> {order.internalNotes}
+          <span className="font-semibold">💬 Cliente:</span> {order.additionalNote}
+        </p>
+      )}
+
+      {order.internalNotes && (
+        <p className="mt-2 line-clamp-2 rounded-md bg-amber-50 px-2 py-1.5 text-xs text-amber-900">
+          <span className="font-semibold">📝 Nota interna:</span> {order.internalNotes}
         </p>
       )}
     </button>

@@ -189,6 +189,16 @@ export function OrderDetailDrawer({
             <p className="mt-2 text-sm text-[#5a5a5a]">{order.direccion}</p>
           </section>
 
+          {/* Nota adicional del cliente */}
+          {order.additionalNote && (
+            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-700">
+                Nota especial del cliente
+              </h3>
+              <p className="text-sm text-amber-900">{order.additionalNote}</p>
+            </section>
+          )}
+
           {/* Pedido */}
           <section className="card">
             <h3 className="card-section-title">Pedido</h3>

@@ -34,6 +34,10 @@ export function renderNewOrderEmail(order: Order): NewOrderEmail {
     ? `<tr><td style="color:#666">Teléfono</td><td>${escapeHtml(order.telefono)}</td></tr>`
     : '';
 
+  const notaRow = order.additionalNote
+    ? `<tr><td style="color:#666;vertical-align:top">Nota del cliente</td><td><i>${escapeHtml(order.additionalNote)}</i></td></tr>`
+    : '';
+
   const deliveryRow =
     order.deliveryFee && order.deliveryFee > 0
       ? `<tr><td style="color:#666">Delivery</td><td>${formatGs(order.deliveryFee)}</td></tr>`
@@ -51,6 +55,7 @@ export function renderNewOrderEmail(order: Order): NewOrderEmail {
       <tr><td style="color:#666;width:120px">Cliente</td><td><b>${escapeHtml(order.cliente)}</b></td></tr>
       ${telefonoRow}
       <tr><td style="color:#666">Dirección</td><td>${escapeHtml(order.direccion)}</td></tr>
+      ${notaRow}
       ${deliveryRow}
       <tr><td style="color:#666">Total</td><td><b>${formatGs(total)}</b></td></tr>
     </table>

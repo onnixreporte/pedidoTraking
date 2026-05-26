@@ -183,6 +183,16 @@ export function OrderDisplay({
         </ol>
       </section>
 
+      {/* Nota adicional del cliente */}
+      {order.additionalNote && (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-700">
+            Nota especial
+          </h3>
+          <p className="text-sm text-amber-900">{order.additionalNote}</p>
+        </section>
+      )}
+
       {/* Detalle del pedido */}
       <section className="card">
         <h2 className="card-section-title">Pedido de {order.cliente}</h2>

@@ -19,6 +19,7 @@ const PedidoSchema = z.object({
   total: numericish,
   cliente: z.string().trim().min(1),
   telefono: z.string().trim().min(6).max(40).optional(),
+  aditionalnota: z.string().trim().max(500).optional(),
   id_chat: z.string().trim().min(1).optional(),
 });
 
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { detalle, direccion, total, cliente, telefono, id_chat } = parsed.data;
+  const { detalle, direccion, total, cliente, telefono, aditionalnota, id_chat } = parsed.data;
 
   if (id_chat) {
     const cutoff = new Date(Date.now() - IDEMPOTENCY_WINDOW_MS);
@@ -57,6 +58,7 @@ export async function POST(req: NextRequest) {
       detalle,
       direccion,
       total,
+      additionalNote: aditionalnota ?? null,
       idChat: id_chat ?? null,
     },
   });
