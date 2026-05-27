@@ -65,3 +65,14 @@ All route handlers use `runtime = 'nodejs'` + `dynamic = 'force-dynamic'` (bcryp
 - Zod for every request body / query. Return `{ error: 'validation_error', details: parsed.error.issues }` on 400.
 - Status changes must go through the PATCH handler so timestamps stay consistent. Do not write `acceptedAt` etc. from the client.
 - When adding a status, update `STATUSES` / `STATUSES_LINEAR` and all four label maps in `src/lib/status.ts`, plus the timestamp switch in `src/app/api/admin/[adminToken]/route.ts`.
+
+## Harness (proceso SDD)
+
+Este proyecto adopta el harness `harness-nestjs-next/` (gitignored, vive como control plane encapsulado). Cuando el usuario diga "trabajemos con el harness" o "modo leader", leé `harness-nestjs-next/CLAUDE.md` y actuá según ese rol. El flujo SDD vive en:
+
+- `harness-nestjs-next/feature_list.json` — cola de features
+- `harness-nestjs-next/specs/<name>/` — requirements/design/tasks por feature
+- `harness-nestjs-next/progress/{current,history}.md` — bitácora
+- `harness-nestjs-next/docs/birth/` — RESCUE_PLAN, blueprint retroactivo
+
+Para verificar el entorno: `cd harness-nestjs-next && ./init.sh` (lint + typecheck + prisma validate sobre el proyecto en `..`).
