@@ -7,6 +7,7 @@ import type { OrderAdminDto } from '@/lib/dto';
 import { STATUSES, STATUS_LABELS, type Status } from '@/lib/status';
 import { OrderDetailDrawer, type DrawerFocus } from './order-detail-drawer';
 import { RepartidorHandoffModal } from './repartidor-handoff-modal';
+import { NewOrderModal } from './new-order-modal';
 
 const NEXT_STEP: Partial<Record<Status, { next: Status; label: string }>> = {
   ENVIADO_AL_NEGOCIO: { next: 'ACEPTADO', label: 'Aceptar' },
@@ -110,6 +111,8 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [advancingId, setAdvancingId] = useState<string | null>(null);
   const [handoffOrder, setHandoffOrder] = useState<OrderAdminDto | null>(null);
+  const [showNewOrder, setShowNewOrder] = useState(false);
+  const [fetchTrigger, setFetchTrigger] = useState(0);
 
   const url = useMemo(() => {
     const params = new URLSearchParams();
@@ -123,8 +126,9 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
     }
     params.set('sort', sort);
     params.set('limit', '100');
+    if (fetchTrigger > 0) params.set('_t', String(fetchTrigger));
     return `/api/orders?${params.toString()}`;
-  }, [statusFilter, activeOnly, search, dateRange, fromDate, toDate, sort]);
+  }, [statusFilter, activeOnly, search, dateRange, fromDate, toDate, sort, fetchTrigger]);
 
   const initialResponse = useMemo<ListResponse>(
     () => ({ items: initial, total: initial.length }),
@@ -211,15 +215,32 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1f1f1f]">Pedidos</h1>
-          <p className="mt-1 text-sm text-[#8a8a8a]">
-            {data.items.length} pedido{data.items.length === 1 ? '' : 's'} ·{' '}
-            {DATE_RANGE_LABEL[dateRange]}
-            {activeOnly && ' · solo activos'}
-          </p>
+        <div className="flex items-start justify-between gap-3 sm:items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-[#1f1f1f]">Pedidos</h1>
+            <p className="mt-1 text-sm text-[#8a8a8a]">
+              {data.items.length} pedido{data.items.length === 1 ? '' : 's'} ·{' '}
+              {DATE_RANGE_LABEL[dateRange]}
+              {activeOnly && ' · solo activos'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowNewOrder(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#066731] px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#055527] sm:hidden"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+              <path
+                fillRule="evenodd"
+                d="M10 3a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H4a1 1 0 1 1 0-2h5V4a1 1 0 0 1 1-1Z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Nuevo
+          </button>
         </div>
-        <div className="relative w-full sm:max-w-xs">
+        <div className="flex w-full items-center gap-2 sm:max-w-md">
+          <div className="relative flex-1">
           <svg
             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8a8a]"
             viewBox="0 0 20 20"
@@ -239,6 +260,21 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
             onChange={(e) => setSearch(e.target.value)}
             className="input-base w-full pl-9"
           />
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowNewOrder(true)}
+            className="hidden items-center gap-1.5 rounded-xl bg-[#066731] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#055527] sm:inline-flex"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+              <path
+                fillRule="evenodd"
+                d="M10 3a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H4a1 1 0 1 1 0-2h5V4a1 1 0 0 1 1-1Z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Nuevo pedido
+          </button>
         </div>
       </div>
 
@@ -392,6 +428,13 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
         <RepartidorHandoffModal
           order={handoffOrder}
           onClose={() => setHandoffOrder(null)}
+        />
+      )}
+
+      {showNewOrder && (
+        <NewOrderModal
+          onClose={() => setShowNewOrder(false)}
+          onCreated={() => setFetchTrigger((n) => n + 1)}
         />
       )}
     </main>
