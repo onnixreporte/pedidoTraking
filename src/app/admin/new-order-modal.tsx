@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { STATUS_LABELS, STATUSES_LINEAR, type LinearStatus } from '@/lib/status';
 
 type SuccessLinks = { tracking: string; admin: string };
 
@@ -17,6 +18,9 @@ export function NewOrderModal({
   const [detalle, setDetalle] = useState('');
   const [total, setTotal] = useState('');
   const [nota, setNota] = useState('');
+  const [status, setStatus] = useState<LinearStatus>('ENVIADO_AL_NEGOCIO');
+  const [estimatedMinutes, setEstimatedMinutes] = useState('');
+  const [deliveryFee, setDeliveryFee] = useState('');
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +59,19 @@ export function NewOrderModal({
       return setError('Total inválido');
     }
 
+    const needsEstimated = status !== 'ENVIADO_AL_NEGOCIO';
+    const needsDelivery = status === 'REPARTIDOR_EN_CAMINO' || status === 'ENTREGADO';
+
+    const estimatedNum = parseInt(estimatedMinutes.replace(/[^\d]/g, ''), 10);
+    if (needsEstimated && (!Number.isFinite(estimatedNum) || estimatedNum <= 0)) {
+      return setError('Cargá el tiempo estimado en minutos');
+    }
+
+    const deliveryNum = parseInt(deliveryFee.replace(/[^\d]/g, ''), 10);
+    if (needsDelivery && (!Number.isFinite(deliveryNum) || deliveryNum < 0)) {
+      return setError('Cargá el costo del delivery');
+    }
+
     setBusy(true);
     try {
       const payload: Record<string, unknown> = {
@@ -65,6 +82,13 @@ export function NewOrderModal({
       };
       if (telefono.trim()) payload.telefono = telefono.trim();
       if (nota.trim()) payload.aditionalnota = nota.trim();
+      if (status !== 'ENVIADO_AL_NEGOCIO') payload.status = status;
+      if (needsEstimated && Number.isFinite(estimatedNum)) {
+        payload.estimatedMinutes = estimatedNum;
+      }
+      if (needsDelivery && Number.isFinite(deliveryNum)) {
+        payload.deliveryFee = deliveryNum;
+      }
 
       const res = await fetch('/api/pedidos', {
         method: 'POST',
@@ -118,6 +142,9 @@ export function NewOrderModal({
   const suggested = suggestedTotal();
   const totalNum = parseInt(total.replace(/[^\d]/g, ''), 10) || 0;
   const showSuggestion = !success && suggested > 0 && suggested !== totalNum;
+
+  const needsEstimated = status !== 'ENVIADO_AL_NEGOCIO';
+  const needsDelivery = status === 'REPARTIDOR_EN_CAMINO' || status === 'ENTREGADO';
 
   return (
     <div
@@ -220,6 +247,53 @@ export function NewOrderModal({
                     </button>
                   )}
                 </div>
+              </Field>
+
+              <Field label="Estado inicial">
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as LinearStatus)}
+                  disabled={busy}
+                  className="input-base w-full !py-2 text-sm"
+                >
+                  {STATUSES_LINEAR.map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_LABELS[s]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field
+                label={needsEstimated ? 'Tiempo estimado (minutos) *' : 'Tiempo estimado (minutos)'}
+                hint={!needsEstimated ? 'Se habilita al elegir un estado avanzado' : undefined}
+              >
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={estimatedMinutes}
+                  onChange={(e) => setEstimatedMinutes(e.target.value)}
+                  disabled={busy || !needsEstimated}
+                  required={needsEstimated}
+                  placeholder="30"
+                  className="input-base w-full !py-2 text-sm disabled:opacity-50"
+                />
+              </Field>
+
+              <Field
+                label={needsDelivery ? 'Precio delivery Gs. *' : 'Precio delivery Gs.'}
+                hint={!needsDelivery ? 'Se habilita desde "Repartidor en camino"' : undefined}
+              >
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={deliveryFee}
+                  onChange={(e) => setDeliveryFee(e.target.value)}
+                  disabled={busy || !needsDelivery}
+                  required={needsDelivery}
+                  placeholder="10000"
+                  className="input-base w-full !py-2 text-sm disabled:opacity-50"
+                />
               </Field>
 
               <Field label="Nota especial del cliente">

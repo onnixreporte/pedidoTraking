@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { genAdminToken, genPublicId } from '@/lib/ids';
 import { buildLinks } from '@/lib/links';
 import { notifyNewOrder } from '@/lib/notifications';
+import { STATUSES_LINEAR } from '@/lib/status';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,6 +22,9 @@ const PedidoSchema = z.object({
   telefono: z.string().trim().min(6).max(40).optional(),
   aditionalnota: z.string().trim().max(500).optional(),
   id_chat: z.string().trim().min(1).optional(),
+  status: z.enum(STATUSES_LINEAR).optional(),
+  estimatedMinutes: z.number().int().positive().optional(),
+  deliveryFee: z.number().int().nonnegative().optional(),
 });
 
 const IDEMPOTENCY_WINDOW_MS = 5 * 60 * 1000;
@@ -39,7 +43,41 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { detalle, direccion, total, cliente, telefono, aditionalnota, id_chat } = parsed.data;
+  const {
+    detalle,
+    direccion,
+    total,
+    cliente,
+    telefono,
+    aditionalnota,
+    id_chat,
+    status,
+    estimatedMinutes,
+    deliveryFee,
+  } = parsed.data;
+
+  if (status && status !== 'ENVIADO_AL_NEGOCIO' && estimatedMinutes == null) {
+    return NextResponse.json(
+      {
+        error: 'ESTIMATED_MINUTES_REQUIRED',
+        message: 'Cargá el tiempo estimado para crear el pedido en este estado',
+      },
+      { status: 400 },
+    );
+  }
+  if (
+    status &&
+    (status === 'REPARTIDOR_EN_CAMINO' || status === 'ENTREGADO') &&
+    deliveryFee == null
+  ) {
+    return NextResponse.json(
+      {
+        error: 'DELIVERY_FEE_REQUIRED',
+        message: 'Cargá el costo del delivery para crear el pedido en este estado',
+      },
+      { status: 400 },
+    );
+  }
 
   if (id_chat) {
     const cutoff = new Date(Date.now() - IDEMPOTENCY_WINDOW_MS);
@@ -49,6 +87,7 @@ export async function POST(req: NextRequest) {
     if (existing) return NextResponse.json(buildLinks(existing));
   }
 
+  const now = new Date();
   const order = await prisma.order.create({
     data: {
       publicId: genPublicId(),
@@ -60,6 +99,18 @@ export async function POST(req: NextRequest) {
       total,
       additionalNote: aditionalnota ?? null,
       idChat: id_chat ?? null,
+      ...(status ? { status } : {}),
+      ...(estimatedMinutes != null ? { estimatedMinutes } : {}),
+      ...(deliveryFee != null ? { deliveryFee } : {}),
+      ...(status === 'ACEPTADO' ||
+      status === 'REPARTIDOR_EN_CAMINO' ||
+      status === 'ENTREGADO'
+        ? { acceptedAt: now }
+        : {}),
+      ...(status === 'REPARTIDOR_EN_CAMINO' || status === 'ENTREGADO'
+        ? { pickupAt: now }
+        : {}),
+      ...(status === 'ENTREGADO' ? { deliveredAt: now } : {}),
     },
   });
 
