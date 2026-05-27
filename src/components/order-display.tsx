@@ -86,33 +86,15 @@ export function OrderDisplay({
     <main className="mx-auto max-w-md">
       {/* Sticky brand header */}
       <header className="sticky top-0 z-20 border-b border-black/5 bg-[#fcf9f2]/90 backdrop-blur-md">
-        <div className="flex items-center justify-between px-4 py-3">
-          <span
-            aria-hidden
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-[#1f1f1f]/70"
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M3 6h18v2H3V6Zm0 5h18v2H3v-2Zm0 5h18v2H3v-2Z" />
-            </svg>
-          </span>
-          <div className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={LOGO_SRC}
-              alt="Café de Acá"
-              className="h-8 w-8 rounded-full object-cover ring-1 ring-black/5"
-            />
-            <span className="text-lg font-bold tracking-tight text-[#066731]">
-              Café de Acá
-            </span>
-          </div>
-          <span
-            aria-hidden
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-[#1f1f1f]/60"
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-3.866 0-7 2.239-7 5v1h14v-1c0-2.761-3.134-5-7-5Z" />
-            </svg>
+        <div className="flex items-center justify-center gap-2 px-4 py-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={LOGO_SRC}
+            alt="Café de Acá"
+            className="h-8 w-8 rounded-full object-cover ring-1 ring-black/5"
+          />
+          <span className="text-lg font-bold tracking-tight text-[#066731]">
+            Café de Acá
           </span>
         </div>
 
