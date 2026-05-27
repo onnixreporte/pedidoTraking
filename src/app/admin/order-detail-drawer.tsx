@@ -123,26 +123,9 @@ export function OrderDetailDrawer({
     }
   }
 
-  async function setStatus(next: Status) {
+  async function setStatus(next: Status, extra?: Record<string, unknown>) {
     if (busy) return;
-
-    // Validación cliente: bloquea con foco al input necesario
-    if (next === 'ACEPTADO' && order.estimatedMinutes == null && !minutesDraft.trim()) {
-      window.alert('Cargá el tiempo estimado abajo antes de aceptar el pedido.');
-      minutesRef.current?.focus();
-      return;
-    }
-    if (
-      next === 'REPARTIDOR_EN_CAMINO' &&
-      order.deliveryFee == null &&
-      !deliveryDraft.trim()
-    ) {
-      window.alert('Cargá el costo del delivery abajo antes de despachar.');
-      deliveryRef.current?.focus();
-      return;
-    }
-
-    await patch({ status: next });
+    await patch({ status: next, ...(extra ?? {}) });
   }
 
   async function cancelOrder() {
@@ -373,31 +356,7 @@ export function OrderDetailDrawer({
 
           {/* Avance de estado */}
           {order.status !== 'CANCELADO' && order.status !== 'ENTREGADO' && (
-            <section className="card">
-              <h3 className="card-section-title">Avanzar estado</h3>
-
-              <div className="mb-3 rounded-lg bg-[#fcf9f2] px-3 py-2 text-xs text-[#5a5a5a]">
-                Estado actual:{' '}
-                <span className="font-semibold text-[#1f1f1f]">
-                  {STATUS_LABELS[order.status as Status]}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2">
-                {ALLOWED_TRANSITIONS[order.status as Status]
-                  .filter((s) => s !== 'CANCELADO' && STATUSES_LINEAR.includes(s as never))
-                  .map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setStatus(s)}
-                      disabled={busy}
-                      className="rounded-xl border border-[#066731] bg-[#066731] px-3 py-2.5 text-left text-sm font-semibold text-white shadow-sm transition hover:bg-[#055527] disabled:opacity-50"
-                    >
-                      {STATUS_ACTION_LABEL[s]} →
-                    </button>
-                  ))}
-              </div>
-            </section>
+            <AdvanceSection order={order} busy={busy} onConfirm={setStatus} />
           )}
 
           {/* Tiempo estimado */}
@@ -525,6 +484,134 @@ export function OrderDetailDrawer({
         </div>
       </aside>
     </div>
+  );
+}
+
+function AdvanceSection({
+  order,
+  busy,
+  onConfirm,
+}: {
+  order: OrderAdminDto;
+  busy: boolean;
+  onConfirm: (next: Status, extra?: Record<string, unknown>) => Promise<void>;
+}) {
+  const nextStates = ALLOWED_TRANSITIONS[order.status as Status].filter(
+    (s) => s !== 'CANCELADO' && STATUSES_LINEAR.includes(s as never),
+  );
+
+  const [activeNext, setActiveNext] = useState<Status | null>(null);
+  const [inputValue, setInputValue] = useState('');
+
+  function handleClick(next: Status) {
+    const needsMinutes = next === 'ACEPTADO' && order.estimatedMinutes == null;
+    const needsDelivery =
+      next === 'REPARTIDOR_EN_CAMINO' && order.deliveryFee == null;
+
+    if (needsMinutes) {
+      setInputValue(String(order.estimatedMinutes ?? 30));
+      setActiveNext(next);
+      return;
+    }
+    if (needsDelivery) {
+      setInputValue('');
+      setActiveNext(next);
+      return;
+    }
+    void onConfirm(next);
+  }
+
+  async function handleConfirm() {
+    if (!activeNext) return;
+    if (activeNext === 'ACEPTADO') {
+      const n = parseInt(inputValue.trim(), 10);
+      if (!Number.isInteger(n) || n <= 0) {
+        window.alert('Ingresá un número entero mayor a 0');
+        return;
+      }
+      await onConfirm('ACEPTADO', { estimatedMinutes: n });
+      setActiveNext(null);
+    } else if (activeNext === 'REPARTIDOR_EN_CAMINO') {
+      const cleaned = inputValue.replace(/[^\d]/g, '');
+      const n = parseInt(cleaned, 10);
+      if (!Number.isInteger(n) || n < 0) {
+        window.alert('Monto inválido');
+        return;
+      }
+      await onConfirm('REPARTIDOR_EN_CAMINO', { deliveryFee: n });
+      setActiveNext(null);
+    }
+  }
+
+  return (
+    <section className="card">
+      <h3 className="card-section-title">Avanzar estado</h3>
+      <div className="mb-3 rounded-lg bg-[#fcf9f2] px-3 py-2 text-xs text-[#5a5a5a]">
+        Estado actual:{' '}
+        <span className="font-semibold text-[#1f1f1f]">
+          {STATUS_LABELS[order.status as Status]}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2">
+        {nextStates.map((s) => (
+          <div key={s}>
+            <button
+              onClick={() => handleClick(s)}
+              disabled={busy}
+              className="w-full rounded-xl border border-[#066731] bg-[#066731] px-3 py-2.5 text-left text-sm font-semibold text-white shadow-sm transition hover:bg-[#055527] disabled:opacity-50"
+            >
+              {STATUS_ACTION_LABEL[s]} →
+            </button>
+
+            {activeNext === s && (
+              <div className="mt-2 rounded-xl border border-[#066731]/30 bg-[#066731]/5 p-3">
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#066731]">
+                  {s === 'ACEPTADO'
+                    ? 'Tiempo estimado (minutos)'
+                    : 'Costo de delivery (Gs.)'}
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void handleConfirm();
+                    }
+                    if (e.key === 'Escape') setActiveNext(null);
+                  }}
+                  autoFocus
+                  placeholder={s === 'ACEPTADO' ? '30' : '15000'}
+                  disabled={busy}
+                  className="input-base mt-1 w-full !py-1.5 text-sm disabled:opacity-50"
+                />
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleConfirm}
+                    disabled={busy || !inputValue.trim()}
+                    className="flex-1 rounded-lg bg-[#066731] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#055527] disabled:opacity-50"
+                  >
+                    Confirmar {STATUS_ACTION_LABEL[s]} →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveNext(null)}
+                    disabled={busy}
+                    className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#1f1f1f] hover:bg-[#fcf9f2] disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

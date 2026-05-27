@@ -173,34 +173,25 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
     setDrawerFocus(null);
   }
 
-  async function quickAdvance(order: OrderAdminDto) {
-    const step = NEXT_STEP[order.status as Status];
-    if (!step) return;
-
-    // Validar requisitos. Si faltan, abro drawer y enfoco el campo.
-    if (step.next === 'ACEPTADO' && order.estimatedMinutes == null) {
-      openDrawer(order.id, 'minutes');
-      return;
-    }
-    if (step.next === 'REPARTIDOR_EN_CAMINO' && order.deliveryFee == null) {
-      openDrawer(order.id, 'delivery');
-      return;
-    }
-
-    setAdvancingId(order.id);
+  async function advanceOrder(
+    orderId: string,
+    body: { status: Status; estimatedMinutes?: number; deliveryFee?: number },
+  ): Promise<boolean> {
+    setAdvancingId(orderId);
     try {
-      const res = await fetch(`/api/orders/${order.id}`, {
+      const res = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: step.next }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         const updated = (await res.json()) as OrderAdminDto;
         patched(updated);
-      } else {
-        const err = await res.json().catch(() => ({}));
-        window.alert(err?.message ?? 'No se pudo cambiar el estado');
+        return true;
       }
+      const err = await res.json().catch(() => ({}));
+      window.alert(err?.message ?? 'No se pudo cambiar el estado');
+      return false;
     } finally {
       setAdvancingId(null);
     }
@@ -381,7 +372,7 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
               copied={copiedId === o.id}
               advancing={advancingId === o.id}
               onOpen={() => openDrawer(o.id)}
-              onAdvance={() => quickAdvance(o)}
+              onAdvance={(body) => advanceOrder(o.id, body)}
               onCopyLink={() => quickCopyLink(o)}
             />
           ))}
@@ -407,6 +398,12 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
   );
 }
 
+type AdvanceBody = {
+  status: Status;
+  estimatedMinutes?: number;
+  deliveryFee?: number;
+};
+
 function OrderCard({
   order,
   copied,
@@ -419,21 +416,58 @@ function OrderCard({
   copied: boolean;
   advancing: boolean;
   onOpen: () => void;
-  onAdvance: () => void;
+  onAdvance: (body: AdvanceBody) => Promise<boolean>;
   onCopyLink: () => void;
 }) {
   const hasDelivery = order.deliveryFee != null && order.deliveryFee > 0;
   const step = NEXT_STEP[order.status as Status];
 
+  const needsMinutes = step?.next === 'ACEPTADO' && order.estimatedMinutes == null;
+  const needsDelivery =
+    step?.next === 'REPARTIDOR_EN_CAMINO' && order.deliveryFee == null;
+  const needsData = needsMinutes || needsDelivery;
+
+  const [showForm, setShowForm] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+
   function handleCardClick(e: React.MouseEvent) {
-    // Si el click vino de un elemento interactivo dentro, no abrimos
     if ((e.target as HTMLElement).closest('[data-stop-card]')) return;
     onOpen();
   }
 
-  function stop(e: React.MouseEvent, fn: () => void) {
+  async function handleAdvanceClick(e: React.MouseEvent) {
     e.stopPropagation();
-    fn();
+    if (!step) return;
+
+    if (needsData) {
+      setInputValue(needsMinutes ? '30' : '');
+      setShowForm(true);
+      return;
+    }
+
+    await onAdvance({ status: step.next });
+  }
+
+  async function handleConfirm() {
+    if (!step) return;
+    if (needsMinutes) {
+      const n = parseInt(inputValue.trim(), 10);
+      if (!Number.isInteger(n) || n <= 0) {
+        window.alert('Ingresá un número entero mayor a 0');
+        return;
+      }
+      const ok = await onAdvance({ status: 'ACEPTADO', estimatedMinutes: n });
+      if (ok) setShowForm(false);
+    } else if (needsDelivery) {
+      const cleaned = inputValue.replace(/[^\d]/g, '');
+      const n = parseInt(cleaned, 10);
+      if (!Number.isInteger(n) || n < 0) {
+        window.alert('Monto inválido');
+        return;
+      }
+      const ok = await onAdvance({ status: 'REPARTIDOR_EN_CAMINO', deliveryFee: n });
+      if (ok) setShowForm(false);
+    }
   }
 
   return (
@@ -505,7 +539,7 @@ function OrderCard({
         {step && (
           <button
             type="button"
-            onClick={(e) => stop(e, onAdvance)}
+            onClick={handleAdvanceClick}
             disabled={advancing}
             className="flex-1 rounded-lg bg-[#066731] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#055527] disabled:opacity-50"
           >
@@ -514,7 +548,10 @@ function OrderCard({
         )}
         <button
           type="button"
-          onClick={(e) => stop(e, onCopyLink)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onCopyLink();
+          }}
           title="Copiar link de tracking del cliente"
           className={[
             'flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition',
@@ -529,6 +566,55 @@ function OrderCard({
           {copied ? '✓ Copiado' : '🔗 Link'}
         </button>
       </div>
+
+      {/* Inline form que se expande debajo del boton de avance */}
+      {showForm && step && (
+        <div
+          data-stop-card
+          className="mt-2 rounded-xl border border-[#066731]/30 bg-[#066731]/5 p-3"
+        >
+          <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#066731]">
+            {needsMinutes
+              ? 'Tiempo estimado (minutos)'
+              : 'Costo de delivery (Gs.)'}
+          </label>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleConfirm();
+              }
+              if (e.key === 'Escape') setShowForm(false);
+            }}
+            autoFocus
+            placeholder={needsMinutes ? '30' : '15000'}
+            disabled={advancing}
+            className="input-base mt-1 w-full !py-1.5 text-sm disabled:opacity-50"
+          />
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={advancing || !inputValue.trim()}
+              className="flex-1 rounded-lg bg-[#066731] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#055527] disabled:opacity-50"
+            >
+              {advancing ? '…' : `Confirmar ${step.label} →`}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              disabled={advancing}
+              className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-[#1f1f1f] hover:bg-[#fcf9f2] disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
