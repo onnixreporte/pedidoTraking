@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { parseDetalle } from '@/lib/parse-detalle';
 import { formatGs, formatTime } from '@/lib/format';
 import type { OrderAdminDto } from '@/lib/dto';
@@ -15,14 +15,18 @@ function adminUrl(adminToken: string) {
   return `${window.location.origin}/c/${adminToken}`;
 }
 
-type SaveFlash = 'minutes' | 'delivery' | 'notes' | null;
+export type DrawerFocus = 'minutes' | 'delivery' | 'edit' | null;
+
+type SaveFlash = 'minutes' | 'delivery' | 'notes' | 'edit' | null;
 
 export function OrderDetailDrawer({
   order,
+  initialFocus,
   onClose,
   onPatched,
 }: {
   order: OrderAdminDto;
+  initialFocus?: DrawerFocus;
   onClose: () => void;
   onPatched: (next: OrderAdminDto) => void;
 }) {
@@ -36,12 +40,38 @@ export function OrderDetailDrawer({
     order.deliveryFee != null ? String(order.deliveryFee) : '',
   );
   const [notesDraft, setNotesDraft] = useState(order.internalNotes ?? '');
+  const [detalleDraft, setDetalleDraft] = useState(order.detalle);
+  const [totalDraft, setTotalDraft] = useState(String(order.total));
+
+  const minutesRef = useRef<HTMLInputElement>(null);
+  const deliveryRef = useRef<HTMLInputElement>(null);
+  const detalleRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setMinutesDraft(order.estimatedMinutes != null ? String(order.estimatedMinutes) : '');
     setDeliveryDraft(order.deliveryFee != null ? String(order.deliveryFee) : '');
     setNotesDraft(order.internalNotes ?? '');
-  }, [order.id, order.estimatedMinutes, order.deliveryFee, order.internalNotes]);
+    setDetalleDraft(order.detalle);
+    setTotalDraft(String(order.total));
+  }, [
+    order.id,
+    order.estimatedMinutes,
+    order.deliveryFee,
+    order.internalNotes,
+    order.detalle,
+    order.total,
+  ]);
+
+  // Focus inicial cuando el drawer se abre desde una quick action
+  useEffect(() => {
+    if (!initialFocus) return;
+    const tick = setTimeout(() => {
+      if (initialFocus === 'minutes') minutesRef.current?.focus();
+      else if (initialFocus === 'delivery') deliveryRef.current?.focus();
+      else if (initialFocus === 'edit') detalleRef.current?.focus();
+    }, 50);
+    return () => clearTimeout(tick);
+  }, [initialFocus]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -64,7 +94,12 @@ export function OrderDetailDrawer({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        const msg = errBody?.message ?? 'No se pudo guardar el cambio';
+        window.alert(msg);
+        return null;
+      }
       const next = (await res.json()) as OrderAdminDto;
       onPatched(next);
       return next;
@@ -77,6 +112,23 @@ export function OrderDetailDrawer({
 
   async function setStatus(next: Status) {
     if (busy) return;
+
+    // Validación cliente: bloquea con foco al input necesario
+    if (next === 'ACEPTADO' && order.estimatedMinutes == null && !minutesDraft.trim()) {
+      window.alert('Cargá el tiempo estimado abajo antes de aceptar el pedido.');
+      minutesRef.current?.focus();
+      return;
+    }
+    if (
+      next === 'REPARTIDOR_EN_CAMINO' &&
+      order.deliveryFee == null &&
+      !deliveryDraft.trim()
+    ) {
+      window.alert('Cargá el costo del delivery abajo antes de despachar.');
+      deliveryRef.current?.focus();
+      return;
+    }
+
     await patch({ status: next });
   }
 
@@ -133,6 +185,22 @@ export function OrderDetailDrawer({
     flashSaved('notes');
   }
 
+  async function saveOrderEdit() {
+    if (busy) return;
+    const detalle = detalleDraft.trim();
+    if (detalle === '') {
+      window.alert('El detalle no puede quedar vacío');
+      return;
+    }
+    const total = parseInt(totalDraft.replace(/[^\d]/g, ''), 10);
+    if (!Number.isInteger(total) || total < 0) {
+      window.alert('Total inválido');
+      return;
+    }
+    await patch({ detalle, total });
+    flashSaved('edit');
+  }
+
   async function copyToClipboard(text: string, label: string) {
     try {
       await navigator.clipboard.writeText(text);
@@ -140,6 +208,17 @@ export function OrderDetailDrawer({
     } catch {
       window.prompt(`Copiá manualmente — ${label}:`, text);
     }
+  }
+
+  // Sugerencia de total: suma los precios "Gs. X" del detalle editado
+  function suggestedTotal(): number {
+    const matches = detalleDraft.match(/Gs\.?\s*[\d.,]+/gi) ?? [];
+    let sum = 0;
+    for (const m of matches) {
+      const n = parseInt(m.replace(/[^\d]/g, ''), 10);
+      if (Number.isFinite(n)) sum += n;
+    }
+    return sum;
   }
 
   const items = parseDetalle(order.detalle);
@@ -150,6 +229,12 @@ export function OrderDetailDrawer({
   const deliveryDirty =
     deliveryDraft !== (order.deliveryFee != null ? String(order.deliveryFee) : '');
   const notesDirty = notesDraft !== (order.internalNotes ?? '');
+  const editDirty = detalleDraft !== order.detalle || totalDraft !== String(order.total);
+
+  const suggested = suggestedTotal();
+  const totalNum = parseInt(totalDraft.replace(/[^\d]/g, ''), 10) || 0;
+  const showSuggestion =
+    editDirty && suggested > 0 && suggested !== totalNum;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
@@ -189,7 +274,7 @@ export function OrderDetailDrawer({
             <p className="mt-2 text-sm text-[#5a5a5a]">{order.direccion}</p>
           </section>
 
-          {/* Nota adicional del cliente */}
+          {/* Nota del cliente */}
           {order.additionalNote && (
             <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
               <h3 className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-700">
@@ -199,7 +284,7 @@ export function OrderDetailDrawer({
             </section>
           )}
 
-          {/* Pedido */}
+          {/* Pedido actual */}
           <section className="card">
             <h3 className="card-section-title">Pedido</h3>
             <ul className="divide-y divide-black/5">
@@ -227,6 +312,51 @@ export function OrderDetailDrawer({
               </li>
             </ul>
           </section>
+
+          {/* Editar pedido */}
+          {order.status !== 'CANCELADO' && order.status !== 'ENTREGADO' && (
+            <InlineEditSection
+              title="Editar pedido"
+              saved={flash === 'edit'}
+              hint="Una línea por item. Formato: cantidadx producto - Gs. precio"
+            >
+              <textarea
+                ref={detalleRef}
+                value={detalleDraft}
+                onChange={(e) => setDetalleDraft(e.target.value)}
+                rows={5}
+                maxLength={2000}
+                className="input-base w-full font-mono text-xs"
+              />
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-xs font-medium text-[#5a5a5a]">Total Gs.</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={totalDraft}
+                  onChange={(e) => setTotalDraft(e.target.value)}
+                  className="input-base flex-1 !py-1.5 text-sm"
+                />
+                {showSuggestion && (
+                  <button
+                    type="button"
+                    onClick={() => setTotalDraft(String(suggested))}
+                    className="text-xs text-[#066731] underline whitespace-nowrap"
+                    title="Aplicar suma calculada"
+                  >
+                    Usar {formatGs(suggested)}
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={saveOrderEdit}
+                disabled={busy || !editDirty}
+                className="btn-primary mt-2"
+              >
+                Guardar pedido
+              </button>
+            </InlineEditSection>
+          )}
 
           {/* Cambiar estado */}
           {order.status !== 'CANCELADO' && (
@@ -260,10 +390,11 @@ export function OrderDetailDrawer({
             <InlineEditSection
               title="Tiempo estimado de entrega"
               saved={flash === 'minutes'}
-              hint="En minutos (ej: 30). Dejá vacío para quitar."
+              hint="En minutos (ej: 30). Obligatorio para aceptar el pedido."
             >
               <div className="flex gap-2">
                 <input
+                  ref={minutesRef}
                   type="number"
                   inputMode="numeric"
                   min={1}
@@ -286,32 +417,35 @@ export function OrderDetailDrawer({
           )}
 
           {/* Delivery */}
-          <InlineEditSection
-            title="Costo de delivery"
-            saved={flash === 'delivery'}
-            hint="En Gs. (ej: 10000). Dejá vacío para quitar."
-          >
-            <div className="flex gap-2">
-              <input
-                type="text"
-                inputMode="numeric"
-                value={deliveryDraft}
-                onChange={(e) => setDeliveryDraft(e.target.value)}
-                placeholder="0"
-                disabled={busy}
-                className="input-base flex-1 disabled:opacity-50"
-              />
-              <button
-                onClick={saveDelivery}
-                disabled={busy || !deliveryDirty}
-                className="btn-primary"
-              >
-                Guardar
-              </button>
-            </div>
-          </InlineEditSection>
+          {order.status !== 'CANCELADO' && (
+            <InlineEditSection
+              title="Costo de delivery"
+              saved={flash === 'delivery'}
+              hint="En Gs. (ej: 10000). Obligatorio para despachar."
+            >
+              <div className="flex gap-2">
+                <input
+                  ref={deliveryRef}
+                  type="text"
+                  inputMode="numeric"
+                  value={deliveryDraft}
+                  onChange={(e) => setDeliveryDraft(e.target.value)}
+                  placeholder="0"
+                  disabled={busy}
+                  className="input-base flex-1 disabled:opacity-50"
+                />
+                <button
+                  onClick={saveDelivery}
+                  disabled={busy || !deliveryDirty}
+                  className="btn-primary"
+                >
+                  Guardar
+                </button>
+              </div>
+            </InlineEditSection>
+          )}
 
-          {/* Notas */}
+          {/* Notas internas */}
           <InlineEditSection
             title="Nota interna"
             saved={flash === 'notes'}

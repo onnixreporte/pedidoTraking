@@ -5,7 +5,13 @@ import { useVisiblePoll } from '@/hooks/use-visible-poll';
 import { formatGs, formatTime } from '@/lib/format';
 import type { OrderAdminDto } from '@/lib/dto';
 import { STATUSES, STATUS_LABELS, type Status } from '@/lib/status';
-import { OrderDetailDrawer } from './order-detail-drawer';
+import { OrderDetailDrawer, type DrawerFocus } from './order-detail-drawer';
+
+const NEXT_STEP: Partial<Record<Status, { next: Status; label: string }>> = {
+  ENVIADO_AL_NEGOCIO: { next: 'ACEPTADO', label: 'Aceptar' },
+  ACEPTADO: { next: 'REPARTIDOR_EN_CAMINO', label: 'Despachar' },
+  REPARTIDOR_EN_CAMINO: { next: 'ENTREGADO', label: 'Marcar entregado' },
+};
 
 type FilterStatus = Status | 'ALL';
 type DateRange = 'today' | 'yesterday' | 'last7' | 'all' | 'custom';
@@ -99,6 +105,9 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
   const [sort, setSort] = useState<SortOrder>('desc');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [drawerFocus, setDrawerFocus] = useState<DrawerFocus>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [advancingId, setAdvancingId] = useState<string | null>(null);
 
   const url = useMemo(() => {
     const params = new URLSearchParams();
@@ -139,6 +148,60 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
       ...prev,
       items: prev.items.map((o) => (o.id === order.id ? order : o)),
     }));
+  }
+
+  function openDrawer(id: string, focus: DrawerFocus = null) {
+    setDrawerFocus(focus);
+    setSelectedId(id);
+  }
+
+  function closeDrawer() {
+    setSelectedId(null);
+    setDrawerFocus(null);
+  }
+
+  async function quickAdvance(order: OrderAdminDto) {
+    const step = NEXT_STEP[order.status as Status];
+    if (!step) return;
+
+    // Validar requisitos. Si faltan, abro drawer y enfoco el campo.
+    if (step.next === 'ACEPTADO' && order.estimatedMinutes == null) {
+      openDrawer(order.id, 'minutes');
+      return;
+    }
+    if (step.next === 'REPARTIDOR_EN_CAMINO' && order.deliveryFee == null) {
+      openDrawer(order.id, 'delivery');
+      return;
+    }
+
+    setAdvancingId(order.id);
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: step.next }),
+      });
+      if (res.ok) {
+        const updated = (await res.json()) as OrderAdminDto;
+        patched(updated);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        window.alert(err?.message ?? 'No se pudo cambiar el estado');
+      }
+    } finally {
+      setAdvancingId(null);
+    }
+  }
+
+  async function quickCopyLink(order: OrderAdminDto) {
+    const url = `${window.location.origin}/t/${order.publicId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(order.id);
+      setTimeout(() => setCopiedId((cur) => (cur === order.id ? null : cur)), 1800);
+    } catch {
+      window.prompt('Copiá manualmente el link:', url);
+    }
   }
 
   return (
@@ -302,7 +365,11 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
             <OrderCard
               key={o.id}
               order={o}
-              onClick={() => setSelectedId(o.id)}
+              copied={copiedId === o.id}
+              advancing={advancingId === o.id}
+              onOpen={() => openDrawer(o.id)}
+              onAdvance={() => quickAdvance(o)}
+              onCopyLink={() => quickCopyLink(o)}
             />
           ))}
         </div>
@@ -311,7 +378,8 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
       {selected && (
         <OrderDetailDrawer
           order={selected}
-          onClose={() => setSelectedId(null)}
+          initialFocus={drawerFocus}
+          onClose={closeDrawer}
           onPatched={patched}
         />
       )}
@@ -321,18 +389,46 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
 
 function OrderCard({
   order,
-  onClick,
+  copied,
+  advancing,
+  onOpen,
+  onAdvance,
+  onCopyLink,
 }: {
   order: OrderAdminDto;
-  onClick: () => void;
+  copied: boolean;
+  advancing: boolean;
+  onOpen: () => void;
+  onAdvance: () => void;
+  onCopyLink: () => void;
 }) {
   const hasDelivery = order.deliveryFee != null && order.deliveryFee > 0;
+  const step = NEXT_STEP[order.status as Status];
+
+  function handleCardClick(e: React.MouseEvent) {
+    // Si el click vino de un elemento interactivo dentro, no abrimos
+    if ((e.target as HTMLElement).closest('[data-stop-card]')) return;
+    onOpen();
+  }
+
+  function stop(e: React.MouseEvent, fn: () => void) {
+    e.stopPropagation();
+    fn();
+  }
 
   return (
-    <button
-      onClick={onClick}
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleCardClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
       className={[
-        'card card-hover border-l-[5px] text-left',
+        'card card-hover cursor-pointer border-l-[5px] text-left focus:outline-none focus:ring-2 focus:ring-[#066731]/30',
         STATUS_BORDER[order.status as Status],
       ].join(' ')}
     >
@@ -380,7 +476,40 @@ function OrderCard({
           <span className="font-semibold">📝 Nota interna:</span> {order.internalNotes}
         </p>
       )}
-    </button>
+
+      {/* Quick actions */}
+      <div
+        data-stop-card
+        className="mt-3 flex items-center gap-2 border-t border-black/5 pt-3"
+      >
+        {step && (
+          <button
+            type="button"
+            onClick={(e) => stop(e, onAdvance)}
+            disabled={advancing}
+            className="flex-1 rounded-lg bg-[#066731] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#055527] disabled:opacity-50"
+          >
+            {advancing ? '…' : `${step.label} →`}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={(e) => stop(e, onCopyLink)}
+          title="Copiar link de tracking del cliente"
+          className={[
+            'flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition',
+            copied
+              ? 'border-[#066731] bg-[#066731]/10 text-[#066731]'
+              : 'border-black/10 bg-white text-[#1f1f1f] hover:bg-[#fcf9f2]',
+            !step && 'flex-1 justify-center',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          {copied ? '✓ Copiado' : '🔗 Link'}
+        </button>
+      </div>
+    </div>
   );
 }
 

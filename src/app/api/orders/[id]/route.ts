@@ -16,6 +16,8 @@ const PatchSchema = z
     deliveryFee: z.number().int().nonnegative().nullable().optional(),
     internalNotes: z.string().max(2000).nullable().optional(),
     cancelReason: z.string().trim().min(3).max(500).optional(),
+    detalle: z.string().trim().min(1).max(2000).optional(),
+    total: z.number().int().nonnegative().optional(),
   })
   .refine(
     (d) =>
@@ -23,7 +25,9 @@ const PatchSchema = z
       d.estimatedMinutes !== undefined ||
       d.deliveryFee !== undefined ||
       d.internalNotes !== undefined ||
-      d.cancelReason !== undefined,
+      d.cancelReason !== undefined ||
+      d.detalle !== undefined ||
+      d.total !== undefined,
     'al menos un campo requerido',
   )
   .refine(
@@ -62,6 +66,52 @@ export async function PATCH(
       { error: 'VALIDATION_ERROR', details: parsed.error.issues },
       { status: 400 },
     );
+  }
+
+  // Validar transiciones obligatorias: necesitamos el estado actual del pedido
+  if (
+    parsed.data.status === 'ACEPTADO' ||
+    parsed.data.status === 'REPARTIDOR_EN_CAMINO'
+  ) {
+    const current = await prisma.order.findUnique({
+      where: { id },
+      select: { estimatedMinutes: true, deliveryFee: true },
+    });
+    if (!current) {
+      return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
+    }
+
+    if (parsed.data.status === 'ACEPTADO') {
+      const finalMinutes =
+        parsed.data.estimatedMinutes !== undefined
+          ? parsed.data.estimatedMinutes
+          : current.estimatedMinutes;
+      if (finalMinutes == null) {
+        return NextResponse.json(
+          {
+            error: 'ESTIMATED_MINUTES_REQUIRED',
+            message: 'Cargá el tiempo estimado antes de aceptar el pedido',
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (parsed.data.status === 'REPARTIDOR_EN_CAMINO') {
+      const finalDelivery =
+        parsed.data.deliveryFee !== undefined
+          ? parsed.data.deliveryFee
+          : current.deliveryFee;
+      if (finalDelivery == null) {
+        return NextResponse.json(
+          {
+            error: 'DELIVERY_FEE_REQUIRED',
+            message: 'Cargá el costo del delivery antes de despachar',
+          },
+          { status: 400 },
+        );
+      }
+    }
   }
 
   const data: Prisma.OrderUpdateInput = { ...parsed.data };
