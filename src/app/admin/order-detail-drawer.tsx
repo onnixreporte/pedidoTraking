@@ -4,7 +4,20 @@ import { useEffect, useRef, useState } from 'react';
 import { parseDetalle } from '@/lib/parse-detalle';
 import { formatGs, formatTime } from '@/lib/format';
 import type { OrderAdminDto } from '@/lib/dto';
-import { STATUSES_LINEAR, STATUS_LABELS, type Status } from '@/lib/status';
+import {
+  ALLOWED_TRANSITIONS,
+  STATUSES_LINEAR,
+  STATUS_LABELS,
+  type Status,
+} from '@/lib/status';
+
+const STATUS_ACTION_LABEL: Record<Status, string> = {
+  ENVIADO_AL_NEGOCIO: 'Volver a solicitud',
+  ACEPTADO: 'Aceptar',
+  REPARTIDOR_EN_CAMINO: 'Pasar al repartidor',
+  ENTREGADO: 'Marcar entregado',
+  CANCELADO: 'Cancelar',
+};
 
 function trackingUrl(publicId: string) {
   if (typeof window === 'undefined') return `/t/${publicId}`;
@@ -358,29 +371,31 @@ export function OrderDetailDrawer({
             </InlineEditSection>
           )}
 
-          {/* Cambiar estado */}
-          {order.status !== 'CANCELADO' && (
+          {/* Avance de estado */}
+          {order.status !== 'CANCELADO' && order.status !== 'ENTREGADO' && (
             <section className="card">
-              <h3 className="card-section-title">Cambiar estado</h3>
+              <h3 className="card-section-title">Avanzar estado</h3>
+
+              <div className="mb-3 rounded-lg bg-[#fcf9f2] px-3 py-2 text-xs text-[#5a5a5a]">
+                Estado actual:{' '}
+                <span className="font-semibold text-[#1f1f1f]">
+                  {STATUS_LABELS[order.status as Status]}
+                </span>
+              </div>
+
               <div className="grid grid-cols-1 gap-2">
-                {STATUSES_LINEAR.map((s) => {
-                  const active = s === order.status;
-                  return (
+                {ALLOWED_TRANSITIONS[order.status as Status]
+                  .filter((s) => s !== 'CANCELADO' && STATUSES_LINEAR.includes(s as never))
+                  .map((s) => (
                     <button
                       key={s}
                       onClick={() => setStatus(s)}
                       disabled={busy}
-                      className={[
-                        'rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition disabled:opacity-50',
-                        active
-                          ? 'border-[#b4191e] bg-[#b4191e] text-white shadow-sm'
-                          : 'border-black/10 bg-white text-[#1f1f1f] hover:bg-[#fcf9f2]',
-                      ].join(' ')}
+                      className="rounded-xl border border-[#066731] bg-[#066731] px-3 py-2.5 text-left text-sm font-semibold text-white shadow-sm transition hover:bg-[#055527] disabled:opacity-50"
                     >
-                      {STATUS_LABELS[s]}
+                      {STATUS_ACTION_LABEL[s]} →
                     </button>
-                  );
-                })}
+                  ))}
               </div>
             </section>
           )}

@@ -6,10 +6,11 @@ import { formatGs, formatTime } from '@/lib/format';
 import type { OrderAdminDto } from '@/lib/dto';
 import { STATUSES, STATUS_LABELS, type Status } from '@/lib/status';
 import { OrderDetailDrawer, type DrawerFocus } from './order-detail-drawer';
+import { RepartidorHandoffModal } from './repartidor-handoff-modal';
 
 const NEXT_STEP: Partial<Record<Status, { next: Status; label: string }>> = {
   ENVIADO_AL_NEGOCIO: { next: 'ACEPTADO', label: 'Aceptar' },
-  ACEPTADO: { next: 'REPARTIDOR_EN_CAMINO', label: 'Despachar' },
+  ACEPTADO: { next: 'REPARTIDOR_EN_CAMINO', label: 'Pasar al repartidor' },
   REPARTIDOR_EN_CAMINO: { next: 'ENTREGADO', label: 'Marcar entregado' },
 };
 
@@ -108,6 +109,7 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
   const [drawerFocus, setDrawerFocus] = useState<DrawerFocus>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [advancingId, setAdvancingId] = useState<string | null>(null);
+  const [handoffOrder, setHandoffOrder] = useState<OrderAdminDto | null>(null);
 
   const url = useMemo(() => {
     const params = new URLSearchParams();
@@ -144,10 +146,21 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
   const counts = data.counts ?? EMPTY_COUNTS;
 
   function patched(order: OrderAdminDto) {
+    // Detectar transición a REPARTIDOR_EN_CAMINO para disparar el handoff modal
+    const previous = data.items.find((o) => o.id === order.id);
+    const justWentToRepartidor =
+      previous &&
+      previous.status !== 'REPARTIDOR_EN_CAMINO' &&
+      order.status === 'REPARTIDOR_EN_CAMINO';
+
     setData((prev) => ({
       ...prev,
       items: prev.items.map((o) => (o.id === order.id ? order : o)),
     }));
+
+    if (justWentToRepartidor) {
+      setHandoffOrder(order);
+    }
   }
 
   function openDrawer(id: string, focus: DrawerFocus = null) {
@@ -381,6 +394,13 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
           initialFocus={drawerFocus}
           onClose={closeDrawer}
           onPatched={patched}
+        />
+      )}
+
+      {handoffOrder && (
+        <RepartidorHandoffModal
+          order={handoffOrder}
+          onClose={() => setHandoffOrder(null)}
         />
       )}
     </main>

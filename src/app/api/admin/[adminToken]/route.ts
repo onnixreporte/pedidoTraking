@@ -3,7 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { toOrderAdminDto } from '@/lib/dto';
-import { STATUSES } from '@/lib/status';
+import { STATUSES, canTransition, type Status } from '@/lib/status';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -56,6 +56,58 @@ export async function PATCH(
       { error: 'validation_error', details: parsed.error.issues },
       { status: 400 },
     );
+  }
+
+  if (parsed.data.status) {
+    const current = await prisma.order.findUnique({
+      where: { adminToken },
+      select: { status: true, estimatedMinutes: true, deliveryFee: true },
+    });
+    if (!current) {
+      return NextResponse.json({ error: 'not_found' }, { status: 404 });
+    }
+
+    if (!canTransition(current.status as Status, parsed.data.status)) {
+      return NextResponse.json(
+        {
+          error: 'INVALID_TRANSITION',
+          message: 'No se puede cambiar a ese estado desde el estado actual',
+        },
+        { status: 400 },
+      );
+    }
+
+    if (parsed.data.status === 'ACEPTADO') {
+      const finalMinutes =
+        parsed.data.estimatedMinutes !== undefined
+          ? parsed.data.estimatedMinutes
+          : current.estimatedMinutes;
+      if (finalMinutes == null) {
+        return NextResponse.json(
+          {
+            error: 'ESTIMATED_MINUTES_REQUIRED',
+            message: 'Cargá el tiempo estimado antes de aceptar el pedido',
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (parsed.data.status === 'REPARTIDOR_EN_CAMINO') {
+      const finalDelivery =
+        parsed.data.deliveryFee !== undefined
+          ? parsed.data.deliveryFee
+          : current.deliveryFee;
+      if (finalDelivery == null) {
+        return NextResponse.json(
+          {
+            error: 'DELIVERY_FEE_REQUIRED',
+            message: 'Cargá el costo del delivery antes de pasar al repartidor',
+          },
+          { status: 400 },
+        );
+      }
+    }
   }
 
   const data: Prisma.OrderUpdateInput = { ...parsed.data };

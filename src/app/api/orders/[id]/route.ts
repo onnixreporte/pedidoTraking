@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import { toOrderAdminDto } from '@/lib/dto';
-import { STATUSES } from '@/lib/status';
+import { STATUSES, canTransition, type Status } from '@/lib/status';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -68,17 +68,24 @@ export async function PATCH(
     );
   }
 
-  // Validar transiciones obligatorias: necesitamos el estado actual del pedido
-  if (
-    parsed.data.status === 'ACEPTADO' ||
-    parsed.data.status === 'REPARTIDOR_EN_CAMINO'
-  ) {
+  // Validar transición de estado: necesitamos el estado actual del pedido
+  if (parsed.data.status) {
     const current = await prisma.order.findUnique({
       where: { id },
-      select: { estimatedMinutes: true, deliveryFee: true },
+      select: { status: true, estimatedMinutes: true, deliveryFee: true },
     });
     if (!current) {
       return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
+    }
+
+    if (!canTransition(current.status as Status, parsed.data.status)) {
+      return NextResponse.json(
+        {
+          error: 'INVALID_TRANSITION',
+          message: 'No se puede cambiar a ese estado desde el estado actual',
+        },
+        { status: 400 },
+      );
     }
 
     if (parsed.data.status === 'ACEPTADO') {
@@ -106,7 +113,7 @@ export async function PATCH(
         return NextResponse.json(
           {
             error: 'DELIVERY_FEE_REQUIRED',
-            message: 'Cargá el costo del delivery antes de despachar',
+            message: 'Cargá el costo del delivery antes de pasar al repartidor',
           },
           { status: 400 },
         );

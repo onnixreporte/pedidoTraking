@@ -57,3 +57,20 @@ export const STATUS_TIMELINE_FUTURE: Record<Status, string> = {
   ENTREGADO: '¡Entregamos tu pedido!',
   CANCELADO: 'Pedido cancelado',
 };
+
+/**
+ * Transiciones permitidas por estado. Una vez en REPARTIDOR_EN_CAMINO
+ * no se puede volver atrás — solo avanzar a ENTREGADO o cancelar.
+ */
+export const ALLOWED_TRANSITIONS: Record<Status, readonly Status[]> = {
+  ENVIADO_AL_NEGOCIO: ['ACEPTADO', 'CANCELADO'],
+  ACEPTADO: ['REPARTIDOR_EN_CAMINO', 'CANCELADO'],
+  REPARTIDOR_EN_CAMINO: ['ENTREGADO', 'CANCELADO'],
+  ENTREGADO: [],
+  CANCELADO: [],
+};
+
+export function canTransition(from: Status, to: Status): boolean {
+  if (from === to) return true;
+  return ALLOWED_TRANSITIONS[from].includes(to);
+}
