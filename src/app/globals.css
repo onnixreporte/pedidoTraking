@@ -4,18 +4,18 @@
 
 /* Design tokens — Café de Acá brand */
 :root {
-  --bg-cream:      #fcf9f2;
-  --bg-cream-2:    #f5efde;
-  --brand-red:     #b4191e;
-  --brand-green:   #066731;
+  --bg-cream: #fcf9f2;
+  --bg-cream-2: #f5efde;
+  --brand-red: #b4191e;
+  --brand-green: #066731;
   --brand-green-2: #055527;
-  --ink:           #1f1f1f;
-  --ink-soft:      #5a5a5a;
-  --ink-mute:      #8a8a8a;
-  --line:          rgba(0, 0, 0, 0.06);
-  --line-strong:   rgba(0, 0, 0, 0.10);
-  --shadow-card:   0 1px 2px rgba(20, 12, 0, 0.04), 0 1px 3px rgba(20, 12, 0, 0.03);
-  --shadow-hover:  0 4px 14px rgba(20, 12, 0, 0.08);
+  --ink: #1f1f1f;
+  --ink-soft: #5a5a5a;
+  --ink-mute: #8a8a8a;
+  --line: rgba(0, 0, 0, 0.06);
+  --line-strong: rgba(0, 0, 0, 0.1);
+  --shadow-card: 0 1px 2px rgba(20, 12, 0, 0.04), 0 1px 3px rgba(20, 12, 0, 0.03);
+  --shadow-hover: 0 4px 14px rgba(20, 12, 0, 0.08);
 }
 
 @layer components {
@@ -48,13 +48,18 @@
 }
 
 @keyframes step-breathe {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
-    box-shadow: 0 0 0 4px rgb(180 25 30 / 0.15), 0 0 0 8px rgb(180 25 30 / 0);
+    box-shadow:
+      0 0 0 4px rgb(180 25 30 / 0.15),
+      0 0 0 8px rgb(180 25 30 / 0);
   }
   50% {
     transform: scale(1.08);
-    box-shadow: 0 0 0 6px rgb(180 25 30 / 0.25), 0 0 0 14px rgb(180 25 30 / 0.35);
+    box-shadow:
+      0 0 0 6px rgb(180 25 30 / 0.25),
+      0 0 0 14px rgb(180 25 30 / 0.35);
   }
 }
 

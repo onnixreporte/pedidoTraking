@@ -102,14 +102,10 @@ export async function POST(req: NextRequest) {
       ...(status ? { status } : {}),
       ...(estimatedMinutes != null ? { estimatedMinutes } : {}),
       ...(deliveryFee != null ? { deliveryFee } : {}),
-      ...(status === 'ACEPTADO' ||
-      status === 'REPARTIDOR_EN_CAMINO' ||
-      status === 'ENTREGADO'
+      ...(status === 'ACEPTADO' || status === 'REPARTIDOR_EN_CAMINO' || status === 'ENTREGADO'
         ? { acceptedAt: now }
         : {}),
-      ...(status === 'REPARTIDOR_EN_CAMINO' || status === 'ENTREGADO'
-        ? { pickupAt: now }
-        : {}),
+      ...(status === 'REPARTIDOR_EN_CAMINO' || status === 'ENTREGADO' ? { pickupAt: now } : {}),
       ...(status === 'ENTREGADO' ? { deliveredAt: now } : {}),
     },
   });

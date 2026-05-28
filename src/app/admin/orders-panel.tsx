@@ -96,8 +96,6 @@ function presetDates(range: DateRange): { from: string; to: string } {
   }
 }
 
-const ACTIVE_STATUSES: Status[] = ['ENVIADO_AL_NEGOCIO', 'ACEPTADO', 'REPARTIDOR_EN_CAMINO'];
-
 export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('ALL');
   const [dateRange, setDateRange] = useState<DateRange>('today');
@@ -241,25 +239,25 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
         </div>
         <div className="flex w-full items-center gap-2 sm:max-w-md">
           <div className="relative flex-1">
-          <svg
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8a8a]"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-hidden
-          >
-            <path
-              fillRule="evenodd"
-              d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z"
-              clipRule="evenodd"
+            <svg
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8a8a]"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden
+            >
+              <path
+                fillRule="evenodd"
+                d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <input
+              type="search"
+              placeholder="Buscar por cliente, teléfono o dirección…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input-base w-full pl-9"
             />
-          </svg>
-          <input
-            type="search"
-            placeholder="Buscar por cliente, teléfono o dirección…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input-base w-full pl-9"
-          />
           </div>
           <button
             type="button"
@@ -395,9 +393,7 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
         <div className="card flex flex-col items-center gap-3 border-dashed py-16 text-center">
           <div className="text-4xl opacity-30">🍽️</div>
           <p className="text-sm font-medium text-[#5a5a5a]">Sin pedidos en este filtro</p>
-          <p className="text-xs text-[#8a8a8a]">
-            Probá cambiar el rango de fecha o quitar filtros
-          </p>
+          <p className="text-xs text-[#8a8a8a]">Probá cambiar el rango de fecha o quitar filtros</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -425,10 +421,7 @@ export function OrdersPanel({ initial }: { initial: OrderAdminDto[] }) {
       )}
 
       {handoffOrder && (
-        <RepartidorHandoffModal
-          order={handoffOrder}
-          onClose={() => setHandoffOrder(null)}
-        />
+        <RepartidorHandoffModal order={handoffOrder} onClose={() => setHandoffOrder(null)} />
       )}
 
       {showNewOrder && (
@@ -466,8 +459,7 @@ function OrderCard({
   const step = NEXT_STEP[order.status as Status];
 
   const needsMinutes = step?.next === 'ACEPTADO' && order.estimatedMinutes == null;
-  const needsDelivery =
-    step?.next === 'REPARTIDOR_EN_CAMINO' && order.deliveryFee == null;
+  const needsDelivery = step?.next === 'REPARTIDOR_EN_CAMINO' && order.deliveryFee == null;
   const needsData = needsMinutes || needsDelivery;
 
   const [showForm, setShowForm] = useState(false);
@@ -532,9 +524,7 @@ function OrderCard({
       <div className="mb-2 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate font-semibold text-[#1f1f1f]">{order.cliente}</p>
-          {order.telefono && (
-            <p className="truncate text-xs text-[#8a8a8a]">{order.telefono}</p>
-          )}
+          {order.telefono && <p className="truncate text-xs text-[#8a8a8a]">{order.telefono}</p>}
         </div>
         <span
           className={[
@@ -575,10 +565,7 @@ function OrderCard({
       )}
 
       {/* Quick actions */}
-      <div
-        data-stop-card
-        className="mt-3 flex items-center gap-2 border-t border-black/5 pt-3"
-      >
+      <div data-stop-card className="mt-3 flex items-center gap-2 border-t border-black/5 pt-3">
         {step && (
           <button
             type="button"
@@ -617,9 +604,7 @@ function OrderCard({
           className="mt-2 rounded-xl border border-[#066731]/30 bg-[#066731]/5 p-3"
         >
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#066731]">
-            {needsMinutes
-              ? 'Tiempo estimado (minutos)'
-              : 'Costo de delivery (Gs.)'}
+            {needsMinutes ? 'Tiempo estimado (minutos)' : 'Costo de delivery (Gs.)'}
           </label>
           <input
             type="text"
@@ -676,24 +661,18 @@ function Chip({
   variant?: 'status' | 'date';
 }) {
   const activeClass =
-    variant === 'date'
-      ? 'bg-[#066731] text-white shadow-sm'
-      : 'bg-[#b4191e] text-white shadow-sm';
+    variant === 'date' ? 'bg-[#066731] text-white shadow-sm' : 'bg-[#b4191e] text-white shadow-sm';
 
   return (
     <button
       onClick={onClick}
       className={[
         'rounded-full px-3.5 py-1.5 text-xs font-medium transition',
-        active
-          ? activeClass
-          : 'border border-black/10 bg-white text-[#1f1f1f] hover:bg-[#fcf9f2]',
+        active ? activeClass : 'border border-black/10 bg-white text-[#1f1f1f] hover:bg-[#fcf9f2]',
       ].join(' ')}
     >
       {label}
-      {typeof count === 'number' && (
-        <span className="ml-1.5 opacity-70">({count})</span>
-      )}
+      {typeof count === 'number' && <span className="ml-1.5 opacity-70">({count})</span>}
     </button>
   );
 }

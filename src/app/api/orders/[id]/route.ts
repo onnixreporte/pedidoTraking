@@ -35,10 +35,7 @@ const PatchSchema = z
     'cancelReason requerido al cancelar',
   );
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
 
@@ -51,10 +48,7 @@ export async function GET(
   });
 }
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
 
@@ -106,9 +100,7 @@ export async function PATCH(
 
     if (parsed.data.status === 'REPARTIDOR_EN_CAMINO') {
       const finalDelivery =
-        parsed.data.deliveryFee !== undefined
-          ? parsed.data.deliveryFee
-          : current.deliveryFee;
+        parsed.data.deliveryFee !== undefined ? parsed.data.deliveryFee : current.deliveryFee;
       if (finalDelivery == null) {
         return NextResponse.json(
           {
@@ -130,12 +122,10 @@ export async function PATCH(
     if (parsed.data.status === 'CANCELADO') data.cancelledAt = now;
   }
 
-  const order = await prisma.order
-    .update({ where: { id }, data })
-    .catch((e) => {
-      console.error('[PATCH /api/orders/:id] failed', { id, error: e.message });
-      return null;
-    });
+  const order = await prisma.order.update({ where: { id }, data }).catch((e) => {
+    console.error('[PATCH /api/orders/:id] failed', { id, error: e.message });
+    return null;
+  });
 
   if (!order) return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
   return NextResponse.json(toOrderAdminDto(order));

@@ -95,9 +95,7 @@ export async function PATCH(
 
     if (parsed.data.status === 'REPARTIDOR_EN_CAMINO') {
       const finalDelivery =
-        parsed.data.deliveryFee !== undefined
-          ? parsed.data.deliveryFee
-          : current.deliveryFee;
+        parsed.data.deliveryFee !== undefined ? parsed.data.deliveryFee : current.deliveryFee;
       if (finalDelivery == null) {
         return NextResponse.json(
           {
@@ -119,12 +117,10 @@ export async function PATCH(
     if (parsed.data.status === 'CANCELADO') data.cancelledAt = now;
   }
 
-  const order = await prisma.order
-    .update({ where: { adminToken }, data })
-    .catch((e) => {
-      console.error('[PATCH /api/admin] update failed', { adminToken, error: e.message });
-      return null;
-    });
+  const order = await prisma.order.update({ where: { adminToken }, data }).catch((e) => {
+    console.error('[PATCH /api/admin] update failed', { adminToken, error: e.message });
+    return null;
+  });
 
   if (!order) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   return NextResponse.json(toOrderAdminDto(order));

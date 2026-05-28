@@ -64,9 +64,7 @@ export function AdminHeader({ email }: { email: string }) {
         </div>
       </div>
 
-      {showPasswordModal && (
-        <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />
-      )}
+      {showPasswordModal && <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />}
     </header>
   );
 }

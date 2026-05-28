@@ -93,14 +93,17 @@ export function OrderDisplay({
             alt="Café de Acá"
             className="h-8 w-8 rounded-full object-cover ring-1 ring-black/5"
           />
-          <span className="text-lg font-bold tracking-tight text-[#066731]">
-            Café de Acá
-          </span>
+          <span className="text-lg font-bold tracking-tight text-[#066731]">Café de Acá</span>
         </div>
 
         {/* Dirección con pin */}
         <div className="flex items-center justify-center gap-2 border-t border-black/5 px-4 py-2.5 text-sm text-[#5a5a5a]">
-          <svg className="h-4 w-4 flex-shrink-0 text-[#5a5a5a]" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+          <svg
+            className="h-4 w-4 flex-shrink-0 text-[#5a5a5a]"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden
+          >
             <path
               fillRule="evenodd"
               d="M12 2C7.589 2 4 5.589 4 10c0 5.6 7.2 11.4 7.5 11.65a.75.75 0 0 0 1 0C12.8 21.4 20 15.6 20 10c0-4.411-3.589-8-8-8Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"
@@ -168,10 +171,7 @@ export function OrderDisplay({
               const active = i === currentIdx;
               const ts = stepTime[s];
               const timeLabel = ts ? formatTime(ts) : '';
-              const text =
-                done || active
-                  ? STATUS_TIMELINE_DONE[s]
-                  : STATUS_TIMELINE_FUTURE[s];
+              const text = done || active ? STATUS_TIMELINE_DONE[s] : STATUS_TIMELINE_FUTURE[s];
 
               return (
                 <li key={s} className="flex items-center gap-3">
@@ -200,9 +200,7 @@ export function OrderDisplay({
                     <span className="h-6 w-6 flex-shrink-0 rounded-full border-2 border-black/15 bg-white" />
                   )}
 
-                  <span className="w-14 text-xs tabular-nums text-[#8a8a8a]">
-                    {timeLabel}
-                  </span>
+                  <span className="w-14 text-xs tabular-nums text-[#8a8a8a]">{timeLabel}</span>
                   <span
                     className={[
                       'flex-1 text-sm',
@@ -251,9 +249,7 @@ export function OrderDisplay({
                 </li>
                 <li className="flex gap-3 py-2 text-sm text-[#5a5a5a]">
                   <span className="flex-1">Delivery 🏍️</span>
-                  <span className="font-mono tabular-nums">
-                    {formatGs(order.deliveryFee!)}
-                  </span>
+                  <span className="font-mono tabular-nums">{formatGs(order.deliveryFee!)}</span>
                 </li>
               </>
             )}

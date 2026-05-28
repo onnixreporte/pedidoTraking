@@ -4,12 +4,7 @@ import { useState } from 'react';
 import { useVisiblePoll } from '@/hooks/use-visible-poll';
 import { OrderDisplay } from '@/components/order-display';
 import type { OrderAdminDto } from '@/lib/dto';
-import {
-  ALLOWED_TRANSITIONS,
-  STATUSES_LINEAR,
-  STATUS_LABELS,
-  type Status,
-} from '@/lib/status';
+import { ALLOWED_TRANSITIONS, STATUSES_LINEAR, STATUS_LABELS, type Status } from '@/lib/status';
 
 const STATUS_ACTION_LABEL: Record<Status, string> = {
   ENVIADO_AL_NEGOCIO: 'Volver a solicitud',
@@ -26,10 +21,7 @@ export function ControlView({
   initial: OrderAdminDto;
   adminToken: string;
 }) {
-  const [order, setOrder] = useVisiblePoll<OrderAdminDto>(
-    `/api/admin/${adminToken}`,
-    initial,
-  );
+  const [order, setOrder] = useVisiblePoll<OrderAdminDto>(`/api/admin/${adminToken}`, initial);
   const [busy, setBusy] = useState(false);
 
   async function patch(body: Record<string, unknown>) {
@@ -59,10 +51,7 @@ export function ControlView({
     };
 
     if (next === 'ACEPTADO') {
-      const raw = window.prompt(
-        'Tiempo estimado (minutos):',
-        String(order.estimatedMinutes ?? 30),
-      );
+      const raw = window.prompt('Tiempo estimado (minutos):', String(order.estimatedMinutes ?? 30));
       if (raw === null) return;
       const n = parseInt(raw, 10);
       if (Number.isInteger(n) && n > 0) body.estimatedMinutes = n;

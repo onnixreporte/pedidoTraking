@@ -4,11 +4,7 @@ import { AdminHeader } from './admin-header';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
 
   return (

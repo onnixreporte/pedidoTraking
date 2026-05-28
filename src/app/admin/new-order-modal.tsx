@@ -132,11 +132,7 @@ export function NewOrderModal({
         // fallback
       }
     }
-    window.open(
-      `https://wa.me/?text=${encodeURIComponent(text)}`,
-      '_blank',
-      'noopener,noreferrer',
-    );
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
   }
 
   const suggested = suggestedTotal();
@@ -346,7 +342,9 @@ export function NewOrderModal({
               </div>
               <div>
                 <h2 className="text-lg font-bold text-[#1f1f1f]">¡Pedido creado!</h2>
-                <p className="text-sm text-[#5a5a5a]">Compartí los links con cliente y repartidor.</p>
+                <p className="text-sm text-[#5a5a5a]">
+                  Compartí los links con cliente y repartidor.
+                </p>
               </div>
             </div>
 

@@ -4,12 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { parseDetalle } from '@/lib/parse-detalle';
 import { formatGs, formatTime } from '@/lib/format';
 import type { OrderAdminDto } from '@/lib/dto';
-import {
-  ALLOWED_TRANSITIONS,
-  STATUSES_LINEAR,
-  STATUS_LABELS,
-  type Status,
-} from '@/lib/status';
+import { ALLOWED_TRANSITIONS, STATUSES_LINEAR, STATUS_LABELS, type Status } from '@/lib/status';
 
 const STATUS_ACTION_LABEL: Record<Status, string> = {
   ENVIADO_AL_NEGOCIO: 'Volver a solicitud',
@@ -229,8 +224,7 @@ export function OrderDetailDrawer({
 
   const suggested = suggestedTotal();
   const totalNum = parseInt(totalDraft.replace(/[^\d]/g, ''), 10) || 0;
-  const showSuggestion =
-    editDirty && suggested > 0 && suggested !== totalNum;
+  const showSuggestion = editDirty && suggested > 0 && suggested !== totalNum;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
@@ -433,11 +427,7 @@ export function OrderDetailDrawer({
               maxLength={2000}
               className="input-base w-full"
             />
-            <button
-              onClick={saveNotes}
-              disabled={busy || !notesDirty}
-              className="btn-primary mt-2"
-            >
+            <button onClick={saveNotes} disabled={busy || !notesDirty} className="btn-primary mt-2">
               Guardar nota
             </button>
           </InlineEditSection>
@@ -505,8 +495,7 @@ function AdvanceSection({
 
   function handleClick(next: Status) {
     const needsMinutes = next === 'ACEPTADO' && order.estimatedMinutes == null;
-    const needsDelivery =
-      next === 'REPARTIDOR_EN_CAMINO' && order.deliveryFee == null;
+    const needsDelivery = next === 'REPARTIDOR_EN_CAMINO' && order.deliveryFee == null;
 
     if (needsMinutes) {
       setInputValue(String(order.estimatedMinutes ?? 30));
@@ -567,9 +556,7 @@ function AdvanceSection({
             {activeNext === s && (
               <div className="mt-2 rounded-xl border border-[#066731]/30 bg-[#066731]/5 p-3">
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#066731]">
-                  {s === 'ACEPTADO'
-                    ? 'Tiempo estimado (minutos)'
-                    : 'Costo de delivery (Gs.)'}
+                  {s === 'ACEPTADO' ? 'Tiempo estimado (minutos)' : 'Costo de delivery (Gs.)'}
                 </label>
                 <input
                   type="text"

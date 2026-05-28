@@ -5,11 +5,7 @@ import { TrackingView } from './tracking-view';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Page({
-  params,
-}: {
-  params: Promise<{ publicId: string }>;
-}) {
+export default async function Page({ params }: { params: Promise<{ publicId: string }> }) {
   const { publicId } = await params;
   const order = await prisma.order.findUnique({ where: { publicId } });
   if (!order) {

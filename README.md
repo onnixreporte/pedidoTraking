@@ -19,16 +19,17 @@ npm run dev
 ```
 
 Variables:
+
 - `DATABASE_URL` — connection string de Postgres (Railway).
 - `APP_BASE_URL` — base sin trailing slash (ej. `http://localhost:3000` o `https://tu-app.vercel.app`). Se usa para construir los links de respuesta.
 
 ## Endpoints
 
-| Método | Path | Descripción |
-|---|---|---|
-| `POST` | `/api/pedidos` | Crear pedido (idempotente 5 min) |
-| `GET` | `/api/track/{publicId}` | Estado para el cliente |
-| `GET` | `/api/admin/{adminToken}` | Estado para el local |
+| Método  | Path                      | Descripción                      |
+| ------- | ------------------------- | -------------------------------- |
+| `POST`  | `/api/pedidos`            | Crear pedido (idempotente 5 min) |
+| `GET`   | `/api/track/{publicId}`   | Estado para el cliente           |
+| `GET`   | `/api/admin/{adminToken}` | Estado para el local             |
 | `PATCH` | `/api/admin/{adminToken}` | Cambiar estado / tiempo estimado |
 
 ## Probar el POST
@@ -46,10 +47,11 @@ curl -X POST http://localhost:3000/api/pedidos \
 ```
 
 Respuesta:
+
 ```json
 {
   "link_tracking": "http://localhost:3000/t/a3f9k2x8",
-  "link_admin":    "http://localhost:3000/c/Xk7pN2vQ8rT4mY9wZ3cF5"
+  "link_admin": "http://localhost:3000/c/Xk7pN2vQ8rT4mY9wZ3cF5"
 }
 ```
 

@@ -1,12 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import {
-  SESSION_COOKIE,
-  SESSION_MAX_AGE,
-  signSession,
-  verifyPassword,
-} from '@/lib/auth';
+import { SESSION_COOKIE, SESSION_MAX_AGE, signSession, verifyPassword } from '@/lib/auth';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';

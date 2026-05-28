@@ -1,0 +1,13 @@
+node_modules
+.next
+dist
+build
+.vercel
+package-lock.json
+public
+prisma/migrations
+harness-nestjs-next
+skill-cto-josu
+skills-cto-josu
+.agents
+docs
