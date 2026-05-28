@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth';
+import { clientIp, rateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,6 +13,14 @@ const CreateUserSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const ip = clientIp(req);
+
+  // Rate limit estricto: 5 intentos por IP cada 10 min
+  if (!(await rateLimit(`admin-users:${ip}`, 5, 10 * 60 * 1000))) {
+    console.warn('[POST /api/admin/users] rate_limited', { ip });
+    return NextResponse.json({ error: 'RATE_LIMITED' }, { status: 429 });
+  }
+
   const expected = process.env.ADMIN_BOOTSTRAP_SECRET;
   if (!expected) {
     return NextResponse.json({ error: 'NOT_CONFIGURED' }, { status: 500 });
@@ -19,6 +28,10 @@ export async function POST(req: NextRequest) {
 
   const provided = req.headers.get('x-admin-bootstrap-secret');
   if (provided !== expected) {
+    console.warn('[POST /api/admin/users] invalid_secret', {
+      ip,
+      hasHeader: provided != null,
+    });
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
   }
 

@@ -14,7 +14,7 @@ const LoginSchema = z.object({
 
 export async function POST(req: NextRequest) {
   const ip = clientIp(req);
-  if (!rateLimit(`login:${ip}`, 5, 10 * 60 * 1000)) {
+  if (!(await rateLimit(`login:${ip}`, 5, 10 * 60 * 1000))) {
     return NextResponse.json(
       { error: 'RATE_LIMITED', message: 'Demasiados intentos. Probá en 10 min.' },
       { status: 429 },
