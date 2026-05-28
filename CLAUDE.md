@@ -4,20 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Stack
 
-Next.js 15 (App Router, React 19) + TypeScript + Tailwind + Prisma + Postgres. Auth via JWT (jose) in HttpOnly cookie. Deploy: Vercel + Railway Postgres.
+Next.js 16 (App Router, React 19) + TypeScript strict + Tailwind + Prisma + Postgres. Auth via JWT (jose) in HttpOnly cookie. Vitest for tests. Sentry for errors (opt-in). Upstash Redis for rate limit (opt-in, fallback in-memory). Deploy: Vercel + Railway Postgres. CI via GitHub Actions.
 
 ## Commands
 
 ```bash
 npm run dev                                  # next dev
 npm run build                                # prisma generate + prisma migrate deploy + next build
-npm run lint                                 # next lint
+npm run lint                                 # eslint .
+npm run format                               # prettier --write .
+npm test                                     # vitest run
+npm run test:coverage                        # with coverage
+bash harness-nestjs-next/init.sh             # full env verification (prisma+typecheck+lint+test+audit)
 npx prisma migrate dev --name <name>         # new migration (local)
 npx prisma migrate deploy                    # apply migrations (prod)
-npm run db:push                              # prototype schema sync, no migration
 ```
 
-No test runner configured. `postinstall` runs `prisma generate`.
+Tests live in `src/lib/*.test.ts`. `postinstall` runs `prisma generate`.
 
 Required env: `DATABASE_URL`, `APP_BASE_URL` (no trailing slash, used to build tracking/admin links), `JWT_SECRET` (≥32 chars), `ADMIN_BOOTSTRAP_SECRET` (gates `POST /api/admin/users`). Optional: `ADMIN_EMAIL` (email notification stub target).
 
