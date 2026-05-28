@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -10,6 +11,11 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -61,7 +67,9 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       role="dialog"
@@ -180,7 +188,8 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
