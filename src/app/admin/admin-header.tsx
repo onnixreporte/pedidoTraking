@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { ChangePasswordModal } from './change-password-modal';
 
 export function AdminHeader({ email }: { email: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   async function logout() {
     setBusy(true);
@@ -41,6 +43,18 @@ export function AdminHeader({ email }: { email: string }) {
         <div className="flex items-center gap-3 text-sm">
           <span className="hidden text-[#8a8a8a] md:inline">{email}</span>
           <button
+            onClick={() => setShowPasswordModal(true)}
+            disabled={busy}
+            className="rounded-lg border border-black/10 bg-white p-1.5 text-[#1f1f1f] transition hover:bg-[#fcf9f2] disabled:opacity-50"
+            aria-label="Cambiar contraseña"
+            title="Cambiar contraseña"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+              <path d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+              <path d="M3.465 14.493a1.23 1.23 0 0 0 .41 1.412A9.957 9.957 0 0 0 10 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 0 0-13.074.003Z" />
+            </svg>
+          </button>
+          <button
             onClick={logout}
             disabled={busy}
             className="rounded-lg border border-black/10 bg-white px-3 py-1.5 text-sm font-medium text-[#1f1f1f] transition hover:bg-[#fcf9f2] disabled:opacity-50"
@@ -49,6 +63,10 @@ export function AdminHeader({ email }: { email: string }) {
           </button>
         </div>
       </div>
+
+      {showPasswordModal && (
+        <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />
+      )}
     </header>
   );
 }
