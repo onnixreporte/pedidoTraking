@@ -1,65 +1,89 @@
-# Pedidos — Tracking MVP
+# Pedidos — Tracking + Panel admin
 
-Tracking de pedidos a domicilio. Botmaker postea el pedido y se generan dos links:
-uno público para el cliente y uno privado para el local.
-
-Spec completo: [docs/superpowers/specs/2026-04-20-pedidos-tracking-design.md](docs/superpowers/specs/2026-04-20-pedidos-tracking-design.md)
+Sistema de tracking de pedidos a domicilio para 1 sucursal (Café de Acá). Botmaker postea cada pedido vía API, se generan 2 links únicos (cliente y admin), y el local los gestiona desde un panel autenticado.
 
 ## Stack
 
-Next.js 15 (App Router) + Postgres (Railway) + Prisma + Tailwind. Deploy en Vercel.
+Next.js 16 (App Router) · React 19 · TypeScript strict · Prisma · Postgres (Railway) · Tailwind · JWT cookies (jose) · bcryptjs · Vitest. Deploy en Vercel.
 
 ## Setup local
 
 ```bash
 npm install
-cp .env.example .env   # editar DATABASE_URL y APP_BASE_URL
-npx prisma migrate dev --name init
-npm run dev
+cp .env.example .env   # editar las env vars
+npx prisma generate
+npm run dev            # http://localhost:3000
 ```
 
-Variables:
+## Variables de entorno
 
-- `DATABASE_URL` — connection string de Postgres (Railway).
-- `APP_BASE_URL` — base sin trailing slash (ej. `http://localhost:3000` o `https://tu-app.vercel.app`). Se usa para construir los links de respuesta.
+| Variable | Obligatoria | Propósito |
+|---|---|---|
+| `DATABASE_URL` | sí | Postgres connection string (Railway) |
+| `APP_BASE_URL` | sí | URL pública (sin trailing slash) |
+| `JWT_SECRET` | sí | ≥32 chars para firmar cookies de sesión |
+| `ADMIN_BOOTSTRAP_SECRET` | sí | Header secret de `POST /api/admin/users` |
+| `ADMIN_EMAIL` | opcional | Notificaciones (stub) |
+| `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | opcional | Rate limit persistente serverless |
+| `SENTRY_DSN` | opcional | Error tracking (no-op si vacío) |
+
+Generar secrets: `openssl rand -base64 48` (JWT) y `openssl rand -base64 32` (bootstrap).
 
 ## Endpoints
 
-| Método  | Path                      | Descripción                      |
-| ------- | ------------------------- | -------------------------------- |
-| `POST`  | `/api/pedidos`            | Crear pedido (idempotente 5 min) |
-| `GET`   | `/api/track/{publicId}`   | Estado para el cliente           |
-| `GET`   | `/api/admin/{adminToken}` | Estado para el local             |
-| `PATCH` | `/api/admin/{adminToken}` | Cambiar estado / tiempo estimado |
+| Método | Path | Auth | Descripción |
+|---|---|---|---|
+| POST | `/api/pedidos` | público | Ingestión desde Botmaker (idempotente 5 min) |
+| GET | `/api/track/{publicId}` | público | DTO cliente sin tokens |
+| GET/PATCH | `/api/admin/{adminToken}` | URL secreta | Control por pedido (sin login) |
+| GET/PATCH | `/api/orders[/...]` | cookie | Panel autenticado |
+| POST | `/api/auth/login` | público (rate-limited) | Login admin |
+| POST | `/api/admin/users` | header secret | Crear admin (bootstrap) |
+| GET | `/api/health` | público | Healthcheck (200 / 503) |
 
-## Probar el POST
+## Vistas
+
+- `/t/{publicId}` — cliente, tracking read-only.
+- `/c/{adminToken}` — local/repartidor, control por pedido (capability URL).
+- `/admin` — staff, panel autenticado.
+- `/admin/login` — login email + password.
+
+## Primer admin (bootstrap)
 
 ```bash
-curl -X POST http://localhost:3000/api/pedidos \
+curl -X POST https://tu-app.vercel.app/api/admin/users \
+  -H "x-admin-bootstrap-secret: <SECRET>" \
   -H "Content-Type: application/json" \
-  -d '{
-    "detalle": "1x Empanada de pollo - Gs. 12.000\n2x Coca 500ml - Gs. 10.000",
-    "direccion": "Av. Mcal. López 1234",
-    "total": 22000,
-    "cliente": "Juan Pérez",
-    "id_chat": "wa_595981234567"
-  }'
+  -d '{"email":"dueno@local.com","password":"PasswordFuerte123!"}'
 ```
 
-Respuesta:
+## Comandos
 
-```json
-{
-  "link_tracking": "http://localhost:3000/t/a3f9k2x8",
-  "link_admin": "http://localhost:3000/c/Xk7pN2vQ8rT4mY9wZ3cF5"
-}
+```bash
+npm run dev              # next dev
+npm run build            # prisma generate + migrate deploy + next build
+npm run lint             # eslint .
+npm run format           # prettier --write .
+npm test                 # vitest
+npm run test:coverage    # vitest + coverage
 ```
 
-## Deploy en Vercel
+## Verificación de entorno
 
-1. Push a GitHub, importar el repo en Vercel.
-2. Configurar env vars: `DATABASE_URL`, `APP_BASE_URL`.
-3. En Railway, crear DB Postgres y copiar la connection string.
-4. Primera vez: correr `npx prisma migrate deploy` apuntando a la DB de prod (o usar el dashboard de Vercel para correrlo).
+```bash
+bash harness-nestjs-next/init.sh
+```
 
-`prisma generate` corre solo en cada build (`postinstall` + `build` script).
+Corre prisma generate + typecheck + lint + tests + prisma validate. Tiene que terminar verde.
+
+## Deploy
+
+Push a `main` → Vercel deploya. CI corre en cada PR (`.github/workflows/ci.yml`).
+
+## Más docs
+
+- `CLAUDE.md` — arquitectura para Claude Code.
+- `CONTRIBUTING.md` — cómo contribuir.
+- `harness-nestjs-next/docs/birth/PROJECT_BLUEPRINT.md` — blueprint retroactivo.
+- `harness-nestjs-next/docs/birth/RESCUE_PLAN.md` — historial del rescate.
+- `harness-nestjs-next/docs/birth/ENFORCEMENT_SETUP.md` — config de tooling.
