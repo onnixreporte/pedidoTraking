@@ -2,12 +2,14 @@ import { STATUSES_LINEAR, STATUS_SHORT_LABELS, type Status } from '@/lib/status'
 
 export function StateStepper({ current }: { current: Status }) {
   const currentIdx = STATUSES_LINEAR.indexOf(current as (typeof STATUSES_LINEAR)[number]);
+  // ENTREGADO es terminal: el ultimo paso cuenta como completado, no como "en curso".
+  const isDelivered = current === 'ENTREGADO';
 
   return (
     <ol className="flex items-start text-[11px] sm:text-xs">
       {STATUSES_LINEAR.map((s, i) => {
-        const done = i < currentIdx;
-        const active = i === currentIdx;
+        const done = isDelivered ? i <= currentIdx : i < currentIdx;
+        const active = !isDelivered && i === currentIdx;
         const hasLeftLine = i > 0;
         const hasRightLine = i < STATUSES_LINEAR.length - 1;
         const leftLineGreen = i <= currentIdx;

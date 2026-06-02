@@ -66,6 +66,7 @@ export function OrderDisplay({
   const hasDelivery = order.deliveryFee != null && order.deliveryFee > 0;
   const grandTotal = order.total + (order.deliveryFee ?? 0);
   const isCancelled = order.status === 'CANCELADO';
+  const isDelivered = order.status === 'ENTREGADO';
   const currentIdx = STATUSES_LINEAR.indexOf(order.status as LinearStatus);
   const showTimeRange =
     !isCancelled &&
@@ -167,8 +168,8 @@ export function OrderDisplay({
         <section className="card">
           <ol className="space-y-3">
             {STATUSES_LINEAR.map((s, i) => {
-              const done = i < currentIdx;
-              const active = i === currentIdx;
+              const done = isDelivered ? i <= currentIdx : i < currentIdx;
+              const active = !isDelivered && i === currentIdx;
               const ts = stepTime[s];
               const timeLabel = ts ? formatTime(ts) : '';
               const text = done || active ? STATUS_TIMELINE_DONE[s] : STATUS_TIMELINE_FUTURE[s];
