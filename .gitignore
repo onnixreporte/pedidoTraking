@@ -12,3 +12,8 @@ docs
 skill-cto-josu
 skills-cto-josu
 harness-nestjs-next
+
+# Claude Code project-level agents (espejo de harness-nestjs-next/.claude/agents/)
+.claude
+.harness_init.log
+harness-nestjs-next/.harness_init.log
