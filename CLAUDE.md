@@ -54,7 +54,7 @@ Linear status flow `ENVIADO_AL_NEGOCIO → ACEPTADO → REPARTIDOR_EN_CAMINO →
 
 **Links.** Always build URLs with `buildLinks()` from `src/lib/links.ts` (strips trailing slash from `APP_BASE_URL`). Do not template URLs inline.
 
-**Rate limit.** `src/lib/rate-limit.ts` is in-memory only — useless across serverless instances on Vercel. Treat as a no-op in prod; do not rely on it for security.
+**Rate limit.** `src/lib/rate-limit.ts` uses Upstash Redis (`Ratelimit.slidingWindow`) when `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` are set, with an in-memory fallback otherwise. `rateLimit()` is **async** — callers MUST `await` it (`if (!(await rateLimit(...)))`); a missing `await` makes `!Promise` always `false`, silently disabling the limit (guarded now by the ESLint rule `@typescript-eslint/no-misused-promises`). Used by `POST /api/auth/login`, `POST /api/auth/change-password`, `POST /api/admin/users`. Without the Upstash env vars in prod the fallback is in-memory (no-op across serverless instances) — set them in Vercel for real protection.
 
 **Notifications.** `src/lib/notifications.ts` is a logging stub — no provider wired. Must swallow errors (order creation must not fail because email failed).
 
