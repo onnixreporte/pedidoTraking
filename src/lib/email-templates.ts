@@ -1,6 +1,7 @@
 import type { Order } from '@prisma/client';
 import { formatGs } from './format';
 import { parseDetalle } from './parse-detalle';
+import { SUCURSAL_LABELS, type Sucursal } from './sucursales';
 
 function escapeHtml(s: string): string {
   return s
@@ -43,6 +44,16 @@ export function renderNewOrderEmail(order: Order): NewOrderEmail {
       ? `<tr><td style="color:#666">Delivery</td><td>${formatGs(order.deliveryFee)}</td></tr>`
       : '';
 
+  // Línea de entrega: dirección (delivery) o sucursal de retiro.
+  const entregaRow =
+    order.orderType === 'PASAR_A_RETIRAR'
+      ? `<tr><td style="color:#666">Retiro en</td><td>${escapeHtml(
+          (order.sucursal && SUCURSAL_LABELS[order.sucursal as Sucursal]) ??
+            order.sucursal ??
+            'No completado',
+        )}</td></tr>`
+      : `<tr><td style="color:#666">Dirección</td><td>${escapeHtml(order.direccion ?? 'No completado')}</td></tr>`;
+
   const html = `<!doctype html>
 <html lang="es">
 <head><meta charset="utf-8"><title>${escapeHtml(subject)}</title></head>
@@ -54,7 +65,7 @@ export function renderNewOrderEmail(order: Order): NewOrderEmail {
     <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:16px">
       <tr><td style="color:#666;width:120px">Cliente</td><td><b>${escapeHtml(order.cliente)}</b></td></tr>
       ${telefonoRow}
-      <tr><td style="color:#666">Dirección</td><td>${escapeHtml(order.direccion)}</td></tr>
+      ${entregaRow}
       ${notaRow}
       ${deliveryRow}
       <tr><td style="color:#666">Total</td><td><b>${formatGs(total)}</b></td></tr>

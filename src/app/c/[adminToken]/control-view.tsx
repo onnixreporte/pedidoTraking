@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { useVisiblePoll } from '@/hooks/use-visible-poll';
 import { OrderDisplay } from '@/components/order-display';
 import type { OrderAdminDto } from '@/lib/dto';
-import { ALLOWED_TRANSITIONS, STATUSES_LINEAR, STATUS_LABELS, type Status } from '@/lib/status';
+import { transitionsFor, stepperStatusesFor, STATUS_LABELS, type Status } from '@/lib/status';
 
 const STATUS_ACTION_LABEL: Record<Status, string> = {
   ENVIADO_AL_NEGOCIO: 'Volver a solicitud',
   ACEPTADO: 'Aceptar',
   REPARTIDOR_EN_CAMINO: 'Pasar al repartidor',
+  PREPARANDO: 'Empezar a preparar',
+  PUEDE_PASAR_A_RETIRAR: 'Marcar listo para retirar',
   ENTREGADO: 'Marcar entregado',
   CANCELADO: 'Cancelar',
 };
@@ -100,9 +102,11 @@ export function ControlView({
   }
 
   const isTerminal = order.status === 'ENTREGADO' || order.status === 'CANCELADO';
-  const allowedNext = ALLOWED_TRANSITIONS[order.status as Status];
+  const isRetiro = order.orderType === 'PASAR_A_RETIRAR';
+  const linearSteps = stepperStatusesFor(order.orderType);
+  const allowedNext = transitionsFor(order.orderType)[order.status as Status];
   const linearNext = allowedNext.filter(
-    (s) => s !== 'CANCELADO' && STATUSES_LINEAR.includes(s as never),
+    (s) => s !== 'CANCELADO' && linearSteps.includes(s as (typeof linearSteps)[number]),
   );
   const canCancel = allowedNext.includes('CANCELADO');
 
@@ -135,7 +139,7 @@ export function ControlView({
             </section>
           )}
 
-          {!isTerminal && (
+          {!isTerminal && !isRetiro && (
             <section className="card">
               <h2 className="card-section-title">Delivery</h2>
               <button

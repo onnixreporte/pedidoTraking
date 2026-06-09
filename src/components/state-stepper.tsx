@@ -1,17 +1,18 @@
-import { STATUSES_LINEAR, STATUS_SHORT_LABELS, type Status } from '@/lib/status';
+import { stepperStatusesFor, STATUS_SHORT_LABELS, type OrderType, type Status } from '@/lib/status';
 
-export function StateStepper({ current }: { current: Status }) {
-  const currentIdx = STATUSES_LINEAR.indexOf(current as (typeof STATUSES_LINEAR)[number]);
+export function StateStepper({ current, orderType }: { current: Status; orderType: OrderType }) {
+  const steps = stepperStatusesFor(orderType); // 4 pasos delivery, 5 pasos retiro
+  const currentIdx = steps.indexOf(current as (typeof steps)[number]);
   // ENTREGADO es terminal: el ultimo paso cuenta como completado, no como "en curso".
   const isDelivered = current === 'ENTREGADO';
 
   return (
     <ol className="flex items-start text-[11px] sm:text-xs">
-      {STATUSES_LINEAR.map((s, i) => {
+      {steps.map((s, i) => {
         const done = isDelivered ? i <= currentIdx : i < currentIdx;
         const active = !isDelivered && i === currentIdx;
         const hasLeftLine = i > 0;
-        const hasRightLine = i < STATUSES_LINEAR.length - 1;
+        const hasRightLine = i < steps.length - 1;
         const leftLineGreen = i <= currentIdx;
         const rightLineGreen = i < currentIdx;
 

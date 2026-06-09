@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import { toOrderAdminDto } from '@/lib/dto';
-import { STATUSES, canTransition, type Status } from '@/lib/status';
+import { STATUSES, canTransition, type OrderType, type Status } from '@/lib/status';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -66,13 +66,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (parsed.data.status) {
     const current = await prisma.order.findUnique({
       where: { id },
-      select: { status: true, estimatedMinutes: true, deliveryFee: true },
+      select: { status: true, orderType: true, estimatedMinutes: true, deliveryFee: true },
     });
     if (!current) {
       return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
     }
 
-    if (!canTransition(current.status as Status, parsed.data.status)) {
+    if (
+      !canTransition(current.status as Status, parsed.data.status, current.orderType as OrderType)
+    ) {
       return NextResponse.json(
         {
           error: 'INVALID_TRANSITION',
@@ -98,7 +100,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
 
-    if (parsed.data.status === 'REPARTIDOR_EN_CAMINO') {
+    // deliveryFee solo obligatorio para despachar DELIVERY (R12: retiro no lo exige).
+    if (parsed.data.status === 'REPARTIDOR_EN_CAMINO' && current.orderType === 'DELIVERY') {
       const finalDelivery =
         parsed.data.deliveryFee !== undefined ? parsed.data.deliveryFee : current.deliveryFee;
       if (finalDelivery == null) {
@@ -118,6 +121,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const now = new Date();
     if (parsed.data.status === 'ACEPTADO') data.acceptedAt = now;
     if (parsed.data.status === 'REPARTIDOR_EN_CAMINO') data.pickupAt = now;
+    if (parsed.data.status === 'PREPARANDO') data.preparingAt = now;
+    if (parsed.data.status === 'PUEDE_PASAR_A_RETIRAR') data.readyAt = now;
     if (parsed.data.status === 'ENTREGADO') data.deliveredAt = now;
     if (parsed.data.status === 'CANCELADO') data.cancelledAt = now;
   }

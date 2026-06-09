@@ -4,15 +4,38 @@ import { useEffect, useRef, useState } from 'react';
 import { parseDetalle } from '@/lib/parse-detalle';
 import { formatGs, formatTime } from '@/lib/format';
 import type { OrderAdminDto } from '@/lib/dto';
-import { ALLOWED_TRANSITIONS, STATUSES_LINEAR, STATUS_LABELS, type Status } from '@/lib/status';
+import { transitionsFor, stepperStatusesFor, STATUS_LABELS, type Status } from '@/lib/status';
+import { SUCURSAL_LABELS, type Sucursal } from '@/lib/sucursales';
+import { OrderTypeBadge } from '@/components/order-type-badge';
 
 const STATUS_ACTION_LABEL: Record<Status, string> = {
   ENVIADO_AL_NEGOCIO: 'Volver a solicitud',
   ACEPTADO: 'Aceptar',
   REPARTIDOR_EN_CAMINO: 'Pasar al repartidor',
+  PREPARANDO: 'Empezar a preparar',
+  PUEDE_PASAR_A_RETIRAR: 'Marcar listo para retirar',
   ENTREGADO: 'Marcar entregado',
   CANCELADO: 'Cancelar',
 };
+
+const NO_COMPLETADO = 'No completado';
+
+function formatFechaRetiro(iso: string | null): string {
+  if (!iso) return NO_COMPLETADO;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return NO_COMPLETADO;
+  return new Intl.DateTimeFormat('es-PY', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(d);
+}
+
+function formatAviso(aviso: boolean | null): string {
+  if (aviso === true) return 'Sí';
+  if (aviso === false) return 'No';
+  return NO_COMPLETADO;
+}
 
 function trackingUrl(publicId: string) {
   if (typeof window === 'undefined') return `/t/${publicId}`;
@@ -232,7 +255,10 @@ export function OrderDetailDrawer({
       <aside className="relative ml-auto flex h-full w-full max-w-md flex-col overflow-y-auto bg-[#fcf9f2] shadow-2xl">
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-black/5 bg-white/85 px-4 py-3 backdrop-blur-md">
           <div className="min-w-0">
-            <p className="truncate font-semibold text-[#1f1f1f]">{order.cliente}</p>
+            <div className="flex items-center gap-2">
+              <p className="truncate font-semibold text-[#1f1f1f]">{order.cliente}</p>
+              <OrderTypeBadge type={order.orderType} variant="compact" />
+            </div>
             <p className="truncate text-xs text-[#8a8a8a]">
               {formatTime(order.createdAt)} · {STATUS_LABELS[order.status as Status]}
             </p>
@@ -261,8 +287,21 @@ export function OrderDetailDrawer({
                 📞 {order.telefono}
               </a>
             )}
-            <p className="mt-2 text-sm text-[#5a5a5a]">{order.direccion}</p>
+            {/* R23: dirección solo en delivery, sucursal solo en retiro. */}
+            {order.orderType === 'DELIVERY' ? (
+              <p className="mt-2 text-sm text-[#5a5a5a]">{order.direccion ?? NO_COMPLETADO}</p>
+            ) : (
+              <p className="mt-2 text-sm text-[#5a5a5a]">
+                🏪{' '}
+                {order.sucursal
+                  ? (SUCURSAL_LABELS[order.sucursal as Sucursal] ?? order.sucursal)
+                  : NO_COMPLETADO}
+              </p>
+            )}
           </section>
+
+          {/* Datos de retiro (R23: solo para PASAR_A_RETIRAR) */}
+          {order.orderType === 'PASAR_A_RETIRAR' && <RetiroSection order={order} />}
 
           {/* Nota del cliente */}
           {order.additionalNote && (
@@ -384,8 +423,8 @@ export function OrderDetailDrawer({
             </InlineEditSection>
           )}
 
-          {/* Delivery */}
-          {order.status !== 'CANCELADO' && (
+          {/* Delivery — R23: solo para DELIVERY (retiro no tiene costo de delivery) */}
+          {order.status !== 'CANCELADO' && order.orderType === 'DELIVERY' && (
             <InlineEditSection
               title="Costo de delivery"
               saved={flash === 'delivery'}
@@ -486,8 +525,10 @@ function AdvanceSection({
   busy: boolean;
   onConfirm: (next: Status, extra?: Record<string, unknown>) => Promise<void>;
 }) {
-  const nextStates = ALLOWED_TRANSITIONS[order.status as Status].filter(
-    (s) => s !== 'CANCELADO' && STATUSES_LINEAR.includes(s as never),
+  // Botones de avance: transiciones lineales (no CANCELADO) según el tipo de pedido.
+  const linearSteps = stepperStatusesFor(order.orderType);
+  const nextStates = transitionsFor(order.orderType)[order.status as Status].filter(
+    (s) => s !== 'CANCELADO' && linearSteps.includes(s as (typeof linearSteps)[number]),
   );
 
   const [activeNext, setActiveNext] = useState<Status | null>(null);
@@ -598,6 +639,40 @@ function AdvanceSection({
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+/**
+ * Datos del pedido de retiro (R23). Solo se renderiza para PASAR_A_RETIRAR.
+ * Los campos opcionales sin valor muestran literalmente "No completado".
+ */
+function RetiroSection({ order }: { order: OrderAdminDto }) {
+  const sucursalLabel = order.sucursal
+    ? (SUCURSAL_LABELS[order.sucursal as Sucursal] ?? order.sucursal)
+    : NO_COMPLETADO;
+
+  return (
+    <section className="card">
+      <h3 className="card-section-title">Datos de retiro</h3>
+      <dl className="space-y-2 text-sm">
+        <div className="flex justify-between gap-3">
+          <dt className="text-[#8a8a8a]">Sucursal</dt>
+          <dd className="text-right font-medium text-[#1f1f1f]">{sucursalLabel}</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-[#8a8a8a]">Fecha de retiro</dt>
+          <dd className="text-right text-[#1f1f1f]">{formatFechaRetiro(order.fechaRetiro)}</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-[#8a8a8a]">Hora de retiro</dt>
+          <dd className="text-right text-[#1f1f1f]">{order.horaRetiro ?? NO_COMPLETADO}</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-[#8a8a8a]">Aviso al cliente</dt>
+          <dd className="text-right text-[#1f1f1f]">{formatAviso(order.avisoCliente)}</dd>
+        </div>
+      </dl>
     </section>
   );
 }

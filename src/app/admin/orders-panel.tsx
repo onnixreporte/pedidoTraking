@@ -5,14 +5,25 @@ import { useVisiblePoll } from '@/hooks/use-visible-poll';
 import { formatGs, formatTime } from '@/lib/format';
 import type { OrderAdminDto } from '@/lib/dto';
 import { STATUSES, STATUS_LABELS, type Status } from '@/lib/status';
+import { SUCURSAL_LABELS, type Sucursal } from '@/lib/sucursales';
+import { OrderTypeBadge } from '@/components/order-type-badge';
 import { OrderDetailDrawer, type DrawerFocus } from './order-detail-drawer';
 import { RepartidorHandoffModal } from './repartidor-handoff-modal';
 import { NewOrderModal } from './new-order-modal';
 
-const NEXT_STEP: Partial<Record<Status, { next: Status; label: string }>> = {
+// Siguiente paso por estado para cada tipo de pedido. El quick-action de la card
+// usa este mapa según order.orderType.
+const NEXT_STEP_DELIVERY: Partial<Record<Status, { next: Status; label: string }>> = {
   ENVIADO_AL_NEGOCIO: { next: 'ACEPTADO', label: 'Aceptar' },
   ACEPTADO: { next: 'REPARTIDOR_EN_CAMINO', label: 'Pasar al repartidor' },
   REPARTIDOR_EN_CAMINO: { next: 'ENTREGADO', label: 'Marcar entregado' },
+};
+
+const NEXT_STEP_RETIRO: Partial<Record<Status, { next: Status; label: string }>> = {
+  ENVIADO_AL_NEGOCIO: { next: 'ACEPTADO', label: 'Aceptar' },
+  ACEPTADO: { next: 'PREPARANDO', label: 'Empezar a preparar' },
+  PREPARANDO: { next: 'PUEDE_PASAR_A_RETIRAR', label: 'Marcar listo para retirar' },
+  PUEDE_PASAR_A_RETIRAR: { next: 'ENTREGADO', label: 'Marcar entregado' },
 };
 
 type FilterStatus = Status | 'ALL';
@@ -38,6 +49,8 @@ const EMPTY_COUNTS: Record<FilterStatus, number> = {
   ENVIADO_AL_NEGOCIO: 0,
   ACEPTADO: 0,
   REPARTIDOR_EN_CAMINO: 0,
+  PREPARANDO: 0,
+  PUEDE_PASAR_A_RETIRAR: 0,
   ENTREGADO: 0,
   CANCELADO: 0,
 };
@@ -46,6 +59,8 @@ const STATUS_BADGE: Record<Status, string> = {
   ENVIADO_AL_NEGOCIO: 'bg-[#b4191e]/10 text-[#b4191e]',
   ACEPTADO: 'bg-blue-100 text-blue-800',
   REPARTIDOR_EN_CAMINO: 'bg-amber-100 text-amber-800',
+  PREPARANDO: 'bg-blue-100 text-blue-800',
+  PUEDE_PASAR_A_RETIRAR: 'bg-amber-100 text-amber-800',
   ENTREGADO: 'bg-[#066731]/12 text-[#066731]',
   CANCELADO: 'bg-gray-200 text-gray-600',
 };
@@ -54,6 +69,8 @@ const STATUS_BORDER: Record<Status, string> = {
   ENVIADO_AL_NEGOCIO: 'border-l-[#b4191e]',
   ACEPTADO: 'border-l-blue-500',
   REPARTIDOR_EN_CAMINO: 'border-l-amber-500',
+  PREPARANDO: 'border-l-blue-500',
+  PUEDE_PASAR_A_RETIRAR: 'border-l-amber-500',
   ENTREGADO: 'border-l-[#066731]',
   CANCELADO: 'border-l-gray-400',
 };
@@ -456,7 +473,9 @@ function OrderCard({
   onCopyLink: () => void;
 }) {
   const hasDelivery = order.deliveryFee != null && order.deliveryFee > 0;
-  const step = NEXT_STEP[order.status as Status];
+  const isRetiro = order.orderType === 'PASAR_A_RETIRAR';
+  const nextStepMap = isRetiro ? NEXT_STEP_RETIRO : NEXT_STEP_DELIVERY;
+  const step = nextStepMap[order.status as Status];
 
   const needsMinutes = step?.next === 'ACEPTADO' && order.estimatedMinutes == null;
   const needsDelivery = step?.next === 'REPARTIDOR_EN_CAMINO' && order.deliveryFee == null;
@@ -526,24 +545,31 @@ function OrderCard({
           <p className="truncate font-semibold text-[#1f1f1f]">{order.cliente}</p>
           {order.telefono && <p className="truncate text-xs text-[#8a8a8a]">{order.telefono}</p>}
         </div>
-        <span
-          className={[
-            'flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
-            STATUS_BADGE[order.status as Status],
-          ].join(' ')}
-        >
-          {STATUS_LABELS[order.status as Status]}
-        </span>
+        <div className="flex flex-shrink-0 flex-col items-end gap-1">
+          <OrderTypeBadge type={order.orderType} variant="compact" />
+          <span
+            className={[
+              'rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
+              STATUS_BADGE[order.status as Status],
+            ].join(' ')}
+          >
+            {STATUS_LABELS[order.status as Status]}
+          </span>
+        </div>
       </div>
 
-      <p className="mb-3 truncate text-sm text-[#5a5a5a]">{order.direccion}</p>
+      <p className="mb-3 truncate text-sm text-[#5a5a5a]">
+        {isRetiro
+          ? `🏪 ${order.sucursal ? (SUCURSAL_LABELS[order.sucursal as Sucursal] ?? order.sucursal) : 'Retiro'}`
+          : (order.direccion ?? 'Sin dirección')}
+      </p>
 
       <div className="flex items-center justify-between text-sm">
         <span className="text-[#8a8a8a]">{formatTime(order.createdAt)}</span>
         <div className="flex items-center gap-1.5">
           {hasDelivery && (
             <span className="rounded-md bg-[#fcf9f2] px-1.5 py-0.5 text-[10px] font-medium text-[#5a5a5a]">
-              🏍️ delivery
+              💰 {formatGs(order.deliveryFee!)}
             </span>
           )}
           <span className="font-mono font-bold tabular-nums text-[#1f1f1f]">

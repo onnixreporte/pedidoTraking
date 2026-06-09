@@ -1,18 +1,25 @@
 import type { Order } from '@prisma/client';
-import type { Status } from './status';
+import type { OrderType, Status } from './status';
 
 export type OrderPublicDto = {
   cliente: string;
-  direccion: string;
+  direccion: string | null;
   detalle: string;
   total: number;
   status: Status;
+  orderType: OrderType;
+  sucursal: string | null;
+  fechaRetiro: string | null;
+  horaRetiro: string | null;
+  avisoCliente: boolean | null;
   estimatedMinutes: number | null;
   deliveryFee: number | null;
   additionalNote: string | null;
   createdAt: string;
   acceptedAt: string | null;
   pickupAt: string | null;
+  preparingAt: string | null;
+  readyAt: string | null;
   deliveredAt: string | null;
   cancelledAt: string | null;
 };
@@ -40,12 +47,19 @@ export function toOrderPublicDto(order: Order): OrderPublicDto {
     detalle: order.detalle,
     total: order.total,
     status: order.status as Status,
+    orderType: order.orderType as OrderType,
+    sucursal: order.sucursal,
+    fechaRetiro: order.fechaRetiro?.toISOString() ?? null,
+    horaRetiro: order.horaRetiro,
+    avisoCliente: order.avisoCliente,
     estimatedMinutes: order.estimatedMinutes,
     deliveryFee: order.deliveryFee,
     additionalNote: order.additionalNote,
     createdAt: order.createdAt.toISOString(),
     acceptedAt: order.acceptedAt?.toISOString() ?? null,
     pickupAt: order.pickupAt?.toISOString() ?? null,
+    preparingAt: order.preparingAt?.toISOString() ?? null,
+    readyAt: order.readyAt?.toISOString() ?? null,
     deliveredAt: order.deliveredAt?.toISOString() ?? null,
     cancelledAt: order.cancelledAt?.toISOString() ?? null,
   };

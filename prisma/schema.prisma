@@ -11,8 +11,15 @@ enum OrderStatus {
   ENVIADO_AL_NEGOCIO
   ACEPTADO
   REPARTIDOR_EN_CAMINO
+  PREPARANDO
+  PUEDE_PASAR_A_RETIRAR
   ENTREGADO
   CANCELADO
+}
+
+enum OrderType {
+  DELIVERY
+  PASAR_A_RETIRAR
 }
 
 enum UserRole {
@@ -36,12 +43,20 @@ model Order {
   publicId         String      @unique
   adminToken       String      @unique
 
+  orderType        OrderType   @default(DELIVERY)
+
   cliente          String
   telefono         String?
   detalle          String
-  direccion        String
+  direccion        String?
   total            Int
   idChat           String?
+
+  // Campos de retiro (null para DELIVERY).
+  sucursal         String?
+  fechaRetiro      DateTime?
+  horaRetiro       String?
+  avisoCliente     Boolean?
 
   status           OrderStatus @default(ENVIADO_AL_NEGOCIO)
   estimatedMinutes Int?
@@ -49,6 +64,8 @@ model Order {
 
   acceptedAt       DateTime?
   pickupAt         DateTime?
+  preparingAt      DateTime?
+  readyAt          DateTime?
   deliveredAt      DateTime?
   cancelledAt      DateTime?
   cancelReason     String?
@@ -61,4 +78,5 @@ model Order {
 
   @@index([idChat, total, createdAt])
   @@index([status, createdAt])
+  @@index([orderType, status, createdAt])
 }

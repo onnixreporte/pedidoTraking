@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { STATUS_LABELS, STATUSES_LINEAR, type LinearStatus } from '@/lib/status';
+import { STATUS_LABELS, STATUSES_LINEAR_DELIVERY, type OrderType } from '@/lib/status';
+import { SUCURSALES, SUCURSAL_LABELS } from '@/lib/sucursales';
 
 type SuccessLinks = { tracking: string; admin: string };
+
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export function NewOrderModal({
   onClose,
@@ -12,15 +15,25 @@ export function NewOrderModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const [orderType, setOrderType] = useState<OrderType>('DELIVERY');
   const [cliente, setCliente] = useState('');
   const [telefono, setTelefono] = useState('');
   const [direccion, setDireccion] = useState('');
   const [detalle, setDetalle] = useState('');
   const [total, setTotal] = useState('');
   const [nota, setNota] = useState('');
-  const [status, setStatus] = useState<LinearStatus>('ENVIADO_AL_NEGOCIO');
+  const [status, setStatus] =
+    useState<(typeof STATUSES_LINEAR_DELIVERY)[number]>('ENVIADO_AL_NEGOCIO');
   const [estimatedMinutes, setEstimatedMinutes] = useState('');
   const [deliveryFee, setDeliveryFee] = useState('');
+
+  // Campos de retiro
+  const [sucursal, setSucursal] = useState('');
+  const [fechaRetiro, setFechaRetiro] = useState('');
+  const [horaRetiro, setHoraRetiro] = useState('');
+  const [aviso, setAviso] = useState(false);
+
+  const isRetiro = orderType === 'PASAR_A_RETIRAR';
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,8 +64,21 @@ export function NewOrderModal({
     setError(null);
 
     if (!cliente.trim()) return setError('Falta el nombre del cliente');
-    if (!direccion.trim()) return setError('Falta la dirección');
     if (!detalle.trim()) return setError('Falta el detalle del pedido');
+
+    // Validaciones por tipo
+    if (isRetiro) {
+      if (!sucursal) return setError('Elegí la sucursal de retiro');
+      if (horaRetiro.trim() && !HHMM.test(horaRetiro.trim())) {
+        return setError('Hora de retiro inválida (formato HH:mm)');
+      }
+      // R26: si el aviso está tildado, la hora es obligatoria.
+      if (aviso && !horaRetiro.trim()) {
+        return setError('Si activás el aviso, cargá la hora de retiro');
+      }
+    } else {
+      if (!direccion.trim()) return setError('Falta la dirección');
+    }
 
     const totalNum = parseInt(total.replace(/[^\d]/g, ''), 10);
     if (!Number.isFinite(totalNum) || totalNum <= 0) {
@@ -60,7 +86,8 @@ export function NewOrderModal({
     }
 
     const needsEstimated = status !== 'ENVIADO_AL_NEGOCIO';
-    const needsDelivery = status === 'REPARTIDOR_EN_CAMINO' || status === 'ENTREGADO';
+    const needsDelivery =
+      !isRetiro && (status === 'REPARTIDOR_EN_CAMINO' || status === 'ENTREGADO');
 
     const estimatedNum = parseInt(estimatedMinutes.replace(/[^\d]/g, ''), 10);
     if (needsEstimated && (!Number.isFinite(estimatedNum) || estimatedNum <= 0)) {
@@ -74,12 +101,23 @@ export function NewOrderModal({
 
     setBusy(true);
     try {
+      // El modal usa los nombres del wire de Botmaker para no divergir del contrato;
+      // el preprocess Zod del endpoint los normaliza. DELIVERY no envía tipo_pedido
+      // (back-compat con la acción Botmaker vieja).
       const payload: Record<string, unknown> = {
         cliente: cliente.trim(),
-        direccion: direccion.trim(),
         detalle: detalle.trim(),
         total: totalNum,
       };
+      if (isRetiro) {
+        payload.tipo_pedido = 'retiro';
+        payload.sucursal_seleccionada = sucursal;
+        if (fechaRetiro.trim()) payload.fecha_retiro = fechaRetiro.trim();
+        if (horaRetiro.trim()) payload.hora = horaRetiro.trim();
+        if (aviso) payload.aviso = true;
+      } else {
+        payload.direccion = direccion.trim();
+      }
       if (telefono.trim()) payload.telefono = telefono.trim();
       if (nota.trim()) payload.aditionalnota = nota.trim();
       if (status !== 'ENVIADO_AL_NEGOCIO') payload.status = status;
@@ -140,7 +178,7 @@ export function NewOrderModal({
   const showSuggestion = !success && suggested > 0 && suggested !== totalNum;
 
   const needsEstimated = status !== 'ENVIADO_AL_NEGOCIO';
-  const needsDelivery = status === 'REPARTIDOR_EN_CAMINO' || status === 'ENTREGADO';
+  const needsDelivery = !isRetiro && (status === 'REPARTIDOR_EN_CAMINO' || status === 'ENTREGADO');
 
   return (
     <div
@@ -171,6 +209,44 @@ export function NewOrderModal({
             </p>
 
             <form onSubmit={submit} className="space-y-3">
+              {/* Tipo de pedido — primer control del form (reorganiza el resto) */}
+              <Field label="Tipo de pedido">
+                <div className="flex gap-2">
+                  {(
+                    [
+                      ['DELIVERY', '🛵 Delivery'],
+                      ['PASAR_A_RETIRAR', '🏪 Pasar a retirar'],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => {
+                        setOrderType(value);
+                        // Al pasar a retiro, los estados avanzados de delivery no aplican:
+                        // reseteamos a ENVIADO si el estado actual no es compartido.
+                        if (
+                          value === 'PASAR_A_RETIRAR' &&
+                          status !== 'ENVIADO_AL_NEGOCIO' &&
+                          status !== 'ACEPTADO'
+                        ) {
+                          setStatus('ENVIADO_AL_NEGOCIO');
+                        }
+                      }}
+                      disabled={busy}
+                      className={[
+                        'flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition disabled:opacity-50',
+                        orderType === value
+                          ? 'border-[#066731] bg-[#066731] text-white'
+                          : 'border-black/10 bg-white text-[#5a5a5a] hover:bg-[#fcf9f2]',
+                      ].join(' ')}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+
               <Field label="Cliente *">
                 <input
                   type="text"
@@ -194,17 +270,77 @@ export function NewOrderModal({
                 />
               </Field>
 
-              <Field label="Dirección *">
-                <input
-                  type="text"
-                  value={direccion}
-                  onChange={(e) => setDireccion(e.target.value)}
-                  required
-                  disabled={busy}
-                  placeholder="Calle, número, barrio"
-                  className="input-base w-full !py-2 text-sm"
-                />
-              </Field>
+              {!isRetiro && (
+                <Field label="Dirección *">
+                  <input
+                    type="text"
+                    value={direccion}
+                    onChange={(e) => setDireccion(e.target.value)}
+                    required
+                    disabled={busy}
+                    placeholder="Calle, número, barrio"
+                    className="input-base w-full !py-2 text-sm"
+                  />
+                </Field>
+              )}
+
+              {isRetiro && (
+                <>
+                  <Field label="Sucursal *">
+                    <select
+                      value={sucursal}
+                      onChange={(e) => setSucursal(e.target.value)}
+                      required
+                      disabled={busy}
+                      className="input-base w-full !py-2 text-sm"
+                    >
+                      <option value="">Elegí la sucursal…</option>
+                      {SUCURSALES.map((code) => (
+                        <option key={code} value={code}>
+                          {SUCURSAL_LABELS[code]}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field label="Fecha de retiro">
+                    <input
+                      type="date"
+                      value={fechaRetiro}
+                      onChange={(e) => setFechaRetiro(e.target.value)}
+                      disabled={busy}
+                      className="input-base w-full !py-2 text-sm"
+                    />
+                  </Field>
+
+                  <Field
+                    label={aviso ? 'Hora de retiro *' : 'Hora de retiro'}
+                    hint={aviso ? 'Obligatoria porque el aviso está activado' : undefined}
+                  >
+                    <input
+                      type="time"
+                      value={horaRetiro}
+                      onChange={(e) => setHoraRetiro(e.target.value)}
+                      required={aviso}
+                      disabled={busy}
+                      className="input-base w-full !py-2 text-sm"
+                    />
+                  </Field>
+
+                  <Field label="Aviso al cliente">
+                    <label className="flex cursor-pointer items-center gap-2 text-sm text-[#1f1f1f]">
+                      <input
+                        type="checkbox"
+                        checked={aviso}
+                        onChange={(e) => setAviso(e.target.checked)}
+                        disabled={busy}
+                        className="h-4 w-4 rounded border-black/20 text-[#066731] focus:ring-[#066731]"
+                      />
+                      Avisar al cliente cuando esté listo para retirar
+                    </label>
+                  </Field>
+                </>
+              )}
 
               <Field
                 label="Detalle del pedido *"
@@ -248,11 +384,17 @@ export function NewOrderModal({
               <Field label="Estado inicial">
                 <select
                   value={status}
-                  onChange={(e) => setStatus(e.target.value as LinearStatus)}
+                  onChange={(e) =>
+                    setStatus(e.target.value as (typeof STATUSES_LINEAR_DELIVERY)[number])
+                  }
                   disabled={busy}
                   className="input-base w-full !py-2 text-sm"
                 >
-                  {STATUSES_LINEAR.map((s) => (
+                  {/* En retiro solo ofrecemos estados compartidos pre-split (ENVIADO/ACEPTADO);
+                      los estados avanzados se alcanzan desde el panel via PATCH. */}
+                  {STATUSES_LINEAR_DELIVERY.filter(
+                    (s) => !isRetiro || s === 'ENVIADO_AL_NEGOCIO' || s === 'ACEPTADO',
+                  ).map((s) => (
                     <option key={s} value={s}>
                       {STATUS_LABELS[s]}
                     </option>
@@ -276,21 +418,23 @@ export function NewOrderModal({
                 />
               </Field>
 
-              <Field
-                label={needsDelivery ? 'Precio delivery Gs. *' : 'Precio delivery Gs.'}
-                hint={!needsDelivery ? 'Se habilita desde "Repartidor en camino"' : undefined}
-              >
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={deliveryFee}
-                  onChange={(e) => setDeliveryFee(e.target.value)}
-                  disabled={busy || !needsDelivery}
-                  required={needsDelivery}
-                  placeholder="10000"
-                  className="input-base w-full !py-2 text-sm disabled:opacity-50"
-                />
-              </Field>
+              {!isRetiro && (
+                <Field
+                  label={needsDelivery ? 'Precio delivery Gs. *' : 'Precio delivery Gs.'}
+                  hint={!needsDelivery ? 'Se habilita desde "Repartidor en camino"' : undefined}
+                >
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={deliveryFee}
+                    onChange={(e) => setDeliveryFee(e.target.value)}
+                    disabled={busy || !needsDelivery}
+                    required={needsDelivery}
+                    placeholder="10000"
+                    className="input-base w-full !py-2 text-sm disabled:opacity-50"
+                  />
+                </Field>
+              )}
 
               <Field label="Nota especial del cliente">
                 <input
