@@ -47,5 +47,25 @@ export default tseslint.config(
       'react-hooks/set-state-in-effect': 'warn',
     },
   },
+  // Linting con info de tipos solo para src/. Habilita reglas que necesitan
+  // el type-checker. Acotado a no-misused-promises + no-floating-promises para
+  // que el blast radius sea mínimo: atrapan el bug de "olvidé el await"
+  // (ej. `if (!rateLimit(...))` sobre una función async) que el typecheck no ve.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        { checksConditionals: true, checksVoidReturn: false },
+      ],
+      '@typescript-eslint/no-floating-promises': 'error',
+    },
+  },
   prettierConfig,
 );

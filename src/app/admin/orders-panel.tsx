@@ -614,7 +614,7 @@ function OrderCard({
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                handleConfirm();
+                void handleConfirm();
               }
               if (e.key === 'Escape') setShowForm(false);
             }}
