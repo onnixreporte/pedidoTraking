@@ -2,7 +2,7 @@
 -- Feature: tipo-pedido-retiro (harness specs/tipo-pedido-retiro)
 -- Fecha: 2026-06-09
 --
--- Aplicar con:  psql "$DATABASE_URL" -f prisma/migrations/manual/2026-06-09_add_order_type_retiro.sql
+-- Aplicar con:  psql "$DATABASE_URL" -f prisma/manual-migrations/2026-06-09_add_order_type_retiro.sql
 --
 -- Es idempotente: seguro para correr varias veces. No destruye filas existentes.
 -- Después de aplicar, correr `npx prisma generate` para refrescar el client tipado.

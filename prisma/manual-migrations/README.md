@@ -3,10 +3,15 @@
 Migraciones que se aplican **a mano** porque tocan datos en producción o requieren
 una ventana específica. NO las corre `prisma migrate deploy` automáticamente.
 
+> ⚠️ **Esta carpeta vive en `prisma/manual-migrations/`, NO en `prisma/migrations/`.**
+> El motor de Prisma escanea `prisma/migrations/` y exige que cada subcarpeta tenga un
+> `migration.sql`. Si ponés estos archivos ahí, `prisma migrate deploy` (que corre en el
+> build de Vercel) falla con **P3015**. Por eso van acá, fuera del alcance del motor.
+
 ## Cómo aplicar
 
 ```bash
-psql "$DATABASE_URL" -f prisma/migrations/manual/<archivo>.sql
+psql "$DATABASE_URL" -f prisma/manual-migrations/<archivo>.sql
 ```
 
 Después de aplicar cualquiera de estas, regenerá el client tipado:
