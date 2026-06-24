@@ -3,6 +3,13 @@
 import { useEffect, useState } from 'react';
 import { STATUS_LABELS, STATUSES_LINEAR_DELIVERY, type OrderType } from '@/lib/status';
 import { SUCURSALES, SUCURSAL_LABELS } from '@/lib/sucursales';
+import {
+  autoTotal,
+  emptyRow,
+  serializeDetalle,
+  validateRows,
+  type DetalleRow,
+} from '@/lib/order-detalle';
 
 type SuccessLinks = { tracking: string; admin: string };
 
@@ -19,8 +26,11 @@ export function NewOrderModal({
   const [cliente, setCliente] = useState('');
   const [telefono, setTelefono] = useState('');
   const [direccion, setDireccion] = useState('');
-  const [detalle, setDetalle] = useState('');
-  const [total, setTotal] = useState('');
+  // Detalle estructurado: 1 fila vacía visible al abrir.
+  const [rows, setRows] = useState<DetalleRow[]>([emptyRow()]);
+  // El total se deriva de la suma de líneas (autoTotal) cuando este override es null.
+  // Si el usuario lo edita a mano, guardamos su valor acá y respetamos ese valor.
+  const [totalOverride, setTotalOverride] = useState<string | null>(null);
   const [nota, setNota] = useState('');
   const [status, setStatus] =
     useState<(typeof STATUSES_LINEAR_DELIVERY)[number]>('ENVIADO_AL_NEGOCIO');
@@ -48,14 +58,22 @@ export function NewOrderModal({
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  function suggestedTotal(): number {
-    const matches = detalle.match(/Gs\.?\s*[\d.,]+/gi) ?? [];
-    let sum = 0;
-    for (const m of matches) {
-      const n = parseInt(m.replace(/[^\d]/g, ''), 10);
-      if (Number.isFinite(n)) sum += n;
-    }
-    return sum;
+  const suggested = autoTotal(rows);
+  const totalTouched = totalOverride !== null;
+  // Valor mostrado/enviado: el override manual, o el auto-total en vivo.
+  const total = totalTouched ? totalOverride : suggested > 0 ? String(suggested) : '';
+
+  function updateRow(index: number, patch: Partial<DetalleRow>) {
+    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+  }
+
+  function addRow() {
+    setRows((prev) => [...prev, emptyRow()]);
+  }
+
+  function removeRow(index: number) {
+    // Siempre dejamos al menos una fila visible.
+    setRows((prev) => (prev.length <= 1 ? [emptyRow()] : prev.filter((_, i) => i !== index)));
   }
 
   async function submit(e: React.FormEvent) {
@@ -64,7 +82,10 @@ export function NewOrderModal({
     setError(null);
 
     if (!cliente.trim()) return setError('Falta el nombre del cliente');
-    if (!detalle.trim()) return setError('Falta el detalle del pedido');
+
+    const rowsValidation = validateRows(rows);
+    if (!rowsValidation.ok) return setError(rowsValidation.error);
+    const detalle = serializeDetalle(rows);
 
     // Validaciones por tipo
     if (isRetiro) {
@@ -173,9 +194,10 @@ export function NewOrderModal({
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
   }
 
-  const suggested = suggestedTotal();
   const totalNum = parseInt(total.replace(/[^\d]/g, ''), 10) || 0;
-  const showSuggestion = !success && suggested > 0 && suggested !== totalNum;
+  // Solo cuando el usuario pisó el total a mano y difiere de la suma de líneas
+  // le ofrecemos volver al auto-total.
+  const showSuggestion = !success && totalTouched && suggested > 0 && suggested !== totalNum;
 
   const needsEstimated = status !== 'ENVIADO_AL_NEGOCIO';
   const needsDelivery = !isRetiro && (status === 'REPARTIDOR_EN_CAMINO' || status === 'ENTREGADO');
@@ -342,28 +364,93 @@ export function NewOrderModal({
                 </>
               )}
 
-              <Field
-                label="Detalle del pedido *"
-                hint="Una línea por item. Formato: 1x Producto - Gs. precio"
-              >
-                <textarea
-                  value={detalle}
-                  onChange={(e) => setDetalle(e.target.value)}
-                  required
-                  rows={4}
-                  disabled={busy}
-                  placeholder={'1x Empanada de pollo - Gs. 12.000\n2x Coca 500ml - Gs. 10.000'}
-                  className="input-base w-full font-mono text-xs"
-                />
+              <Field label="Detalle del pedido *" hint="Cargá un ítem por fila.">
+                <div className="space-y-2">
+                  {/* Encabezado de columnas (oculto en pantallas muy chicas) */}
+                  <div className="hidden grid-cols-[3rem_1fr_5.5rem_1.75rem] gap-1.5 px-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#8a8a8a] sm:grid">
+                    <span>Cant.</span>
+                    <span>Producto</span>
+                    <span>Gs.</span>
+                    <span aria-hidden />
+                  </div>
+
+                  {rows.map((row, i) => (
+                    <div
+                      key={i}
+                      className="grid grid-cols-[3rem_1fr_5.5rem_1.75rem] items-center gap-1.5"
+                    >
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={row.cantidad}
+                        onChange={(e) => updateRow(i, { cantidad: e.target.value })}
+                        disabled={busy}
+                        placeholder="1"
+                        aria-label={`Cantidad ítem ${i + 1}`}
+                        className="input-base w-full !px-2 !py-2 text-center text-sm"
+                      />
+                      <input
+                        type="text"
+                        value={row.producto}
+                        onChange={(e) => updateRow(i, { producto: e.target.value })}
+                        disabled={busy}
+                        placeholder="Empanada de pollo"
+                        aria-label={`Producto ítem ${i + 1}`}
+                        className="input-base w-full !px-2 !py-2 text-sm"
+                      />
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={row.precio}
+                        onChange={(e) => updateRow(i, { precio: e.target.value })}
+                        disabled={busy}
+                        placeholder="12.000"
+                        aria-label={`Precio ítem ${i + 1}`}
+                        className="input-base w-full !px-2 !py-2 text-right text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeRow(i)}
+                        disabled={busy}
+                        aria-label={`Quitar ítem ${i + 1}`}
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-[#8a8a8a] transition hover:bg-[#b4191e]/10 hover:text-[#b4191e] disabled:opacity-50"
+                      >
+                        <svg
+                          className="h-4 w-4"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          aria-hidden
+                        >
+                          <path d="M6.225 4.811a1 1 0 0 0-1.414 1.414L8.586 10l-3.775 3.775a1 1 0 1 0 1.414 1.414L10 11.414l3.775 3.775a1 1 0 0 0 1.414-1.414L11.414 10l3.775-3.775a1 1 0 0 0-1.414-1.414L10 8.586 6.225 4.811Z" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={addRow}
+                    disabled={busy}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#066731] transition hover:text-[#055527] disabled:opacity-50"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                      <path d="M10 4a1 1 0 0 1 1 1v4h4a1 1 0 1 1 0 2h-4v4a1 1 0 1 1-2 0v-4H5a1 1 0 1 1 0-2h4V5a1 1 0 0 1 1-1Z" />
+                    </svg>
+                    Agregar ítem
+                  </button>
+                </div>
               </Field>
 
-              <Field label="Total Gs. *">
+              <Field
+                label="Total Gs. *"
+                hint="Se calcula solo sumando los ítems. Podés editarlo a mano."
+              >
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     inputMode="numeric"
                     value={total}
-                    onChange={(e) => setTotal(e.target.value)}
+                    onChange={(e) => setTotalOverride(e.target.value)}
                     required
                     disabled={busy}
                     placeholder="22000"
@@ -372,7 +459,7 @@ export function NewOrderModal({
                   {showSuggestion && (
                     <button
                       type="button"
-                      onClick={() => setTotal(String(suggested))}
+                      onClick={() => setTotalOverride(null)}
                       className="whitespace-nowrap text-xs font-medium text-[#066731] underline"
                     >
                       Usar Gs. {suggested.toLocaleString('es-PY')}
